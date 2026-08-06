@@ -162,8 +162,33 @@
   tbody tr:hover{ background:var(--bg); }
   td.num{ text-align:right; }
   td.note-cell{ font-family:'Sarabun',sans-serif; font-size:13px; color:var(--muted); }
-  .del-btn{ background:none; border:none; color:var(--border); cursor:pointer; font-size:13px; padding:2px 6px; }
-  .del-btn:hover{ color:var(--red); }
+  .del-btn{
+    background:none; border:1px solid var(--border); color:var(--muted);
+    cursor:pointer; font-size:13px; line-height:1; padding:5px 8px;
+    border-radius:6px; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .del-btn:hover{ color:var(--red); border-color:var(--red); background:rgba(240,107,107,0.1); }
+  .del-btn:active{ opacity:0.7; }
+
+  /* pagination */
+  .pagination{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    margin-top:18px; flex-wrap:wrap;
+  }
+  .page-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; min-width:30px; height:30px;
+    padding:0 8px; border:1px solid var(--border); border-radius:6px;
+    background:var(--surface); color:var(--text); cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .page-btn:hover:not(:disabled):not(.active){ border-color:var(--text); }
+  .page-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .page-btn.active{ background:#1A1A1A; color:#FFFFFF; border-color:#1A1A1A; cursor:default; }
+  [data-theme="dark"] .page-btn.active{ background:#FFFFFF; color:#111111; border-color:#FFFFFF; }
+  .page-info{
+    font-size:12px; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin:0 8px;
+    white-space:nowrap;
+  }
 
   /* filter bar */
   .filter-bar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:flex-end; }
@@ -522,10 +547,19 @@ function onFilterChange(){
     else if(v==='month') { inp.type='month';  inp.placeholder=''; }
     else if(v==='year')  { inp.type='number'; inp.placeholder='เช่น 2026'; }
   }
+  historyPage = 1;
   renderHistory();
 }
 
-/* ─── History table ─── */
+/* ─── History table (with pagination) ─── */
+const HISTORY_PAGE_SIZE = 10;
+let historyPage = 1;
+
+function goToHistoryPage(p){
+  historyPage = p;
+  renderHistory();
+}
+
 function renderHistory(){
   const hist = loadHistory().slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   const view = document.getElementById('filter-view').value;
@@ -539,7 +573,14 @@ function renderHistory(){
   const wrap = document.getElementById('history-wrap');
   if(!rows.length){ wrap.innerHTML='<div class="empty-state">ไม่พบรายการในช่วงที่เลือก</div>'; return; }
 
-  wrap.innerHTML = `<table>
+  const totalPages = Math.max(1, Math.ceil(rows.length / HISTORY_PAGE_SIZE));
+  if(historyPage > totalPages) historyPage = totalPages;
+  if(historyPage < 1) historyPage = 1;
+
+  const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + HISTORY_PAGE_SIZE);
+
+  let html = `<table>
     <thead><tr>
       <th>วันที่</th>
       <th style="text-align:right">USD</th>
@@ -548,16 +589,50 @@ function renderHistory(){
       <th>หมายเหตุ</th>
       <th></th>
     </tr></thead>
-    <tbody>${rows.map(r=>`
+    <tbody>${pageRows.map(r=>`
       <tr>
         <td>${r.date}</td>
         <td class="num">${fmt(r.usd,2)}</td>
         <td class="num">${fmt(r.rate,4)}${r.rateDate && r.rateDate!==r.date ? `<span title="ใช้อัตราวันที่ ${r.rateDate}" style="color:var(--stamp);font-size:10px;margin-left:2px">*</span>` : ''}</td>
         <td class="num">${fmt(r.thb,2)}</td>
         <td class="note-cell">${r.note?escHtml(r.note):'—'}</td>
-        <td><button class="del-btn" onclick="delRecord(${r.id})">✕</button></td>
+        <td><button class="del-btn" title="ลบรายการ" onclick="delRecord(${r.id})">✕</button></td>
       </tr>`).join('')}
     </tbody></table>`;
+
+  html += renderPagination(historyPage, totalPages, rows.length);
+  wrap.innerHTML = html;
+}
+
+function renderPagination(page, totalPages, totalRows){
+  if(totalPages <= 1) return '';
+
+  const btn = (label, target, opts={}) =>
+    `<button class="page-btn${opts.active?' active':''}" ${opts.disabled?'disabled':''}
+      onclick="goToHistoryPage(${target})" aria-label="${opts.aria||label}">${label}</button>`;
+
+  let pages = '';
+  const addPage = n => pages += btn(n, n, { active: n===page });
+
+  // แสดงเลขหน้าแบบย่อ: หน้าแรก, หน้าใกล้ปัจจุบัน, หน้าสุดท้าย
+  const windowSize = 1;
+  const shown = new Set([1, totalPages]);
+  for(let n=page-windowSize; n<=page+windowSize; n++) if(n>=1 && n<=totalPages) shown.add(n);
+  const sorted = [...shown].sort((a,b)=>a-b);
+
+  let prev = 0;
+  for(const n of sorted){
+    if(prev && n - prev > 1) pages += `<span class="page-info">…</span>`;
+    addPage(n);
+    prev = n;
+  }
+
+  return `<div class="pagination">
+    ${btn('‹', page-1, { disabled: page===1, aria:'หน้าก่อนหน้า' })}
+    ${pages}
+    ${btn('›', page+1, { disabled: page===totalPages, aria:'หน้าถัดไป' })}
+    <span class="page-info">${totalRows} รายการ</span>
+  </div>`;
 }
 
 function delRecord(id){
