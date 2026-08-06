@@ -25,7 +25,7 @@
     --border:#2A2A2A;
     --text:#F0F0F0;
     --muted:#666666;
-    --green:#34C472;
+    --green:#4ADE80;
     --red:#F06B6B;
     color-scheme: dark;
   }
@@ -107,10 +107,10 @@
     font-family:'IBM Plex Mono',monospace; font-size:12px;
     padding:5px 12px; border-radius:20px; margin-top:14px;
   }
-  .rate-chip.idle{ background:#F2F2F2; color:var(--muted); }
-  .rate-chip.loading{ background:#F2F2F2; color:var(--muted); }
-  .rate-chip.ready{ background:#EDFBF3; color:var(--green); }
-  .rate-chip.error{ background:#FEF2F2; color:var(--red); }
+  .rate-chip.idle{ background:var(--border); color:var(--muted); }
+  .rate-chip.loading{ background:var(--border); color:var(--muted); }
+  .rate-chip.ready{ background:var(--border); color:var(--green); font-weight:600; }
+  .rate-chip.error{ background:var(--border); color:var(--red); }
 
   /* result */
   .result-row{
