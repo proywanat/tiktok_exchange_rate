@@ -1,0 +1,8 @@
+[build]
+  functions = "netlify/functions"
+
+# redirect /api/rate → Netlify Function
+[[redirects]]
+  from = "/api/rate"
+  to   = "/.netlify/functions/rate"
+  status = 200
