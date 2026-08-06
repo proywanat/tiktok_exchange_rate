@@ -5,271 +5,212 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>สมุดบัญชีแลกเปลี่ยน USD-THB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --paper:#FBF7EF;
-    --paper-line:#C8BFA8;
-    --ink:#1B3A5C;
-    --ink-soft:#4A5D74;
-    --stamp:#A13D2E;
-    --gain:#2F5233;
-    --card:#FFFDF8;
-    --shadow:0 1px 0 rgba(27,58,92,0.06);
+    --bg:#F7F7F7;
+    --surface:#FFFFFF;
+    --border:#E4E4E4;
+    --text:#111111;
+    --muted:#888888;
+    --green:#1A7A4A;
+    --red:#C0392B;
+    --radius:8px;
+    color-scheme: light;
   }
-  *{box-sizing:border-box;}
+  [data-theme="dark"]{
+    --bg:#0F0F0F;
+    --surface:#1A1A1A;
+    --border:#2A2A2A;
+    --text:#F0F0F0;
+    --muted:#666666;
+    --green:#34C472;
+    --red:#F06B6B;
+    color-scheme: dark;
+  }
+  *, *::before, *::after{
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
   body{
-    margin:0;
-    background:
-      repeating-linear-gradient(180deg,transparent 0px,transparent 34px,var(--paper-line) 34px,var(--paper-line) 35px),
-      var(--paper);
+    background:var(--bg);
     font-family:'Sarabun',sans-serif;
-    color:var(--ink);
+    color:var(--text);
     min-height:100vh;
-    padding:22px 16px 60px;
+    padding:32px 20px 80px;
+    font-size:15px;
+    -webkit-font-smoothing:antialiased;
   }
-  .wrap{ max-width:860px; margin:0 auto; }
+  .wrap{ max-width:800px; margin:0 auto; }
 
-  /* ── Token bar ── */
+  /* token bar */
   .token-bar{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    background:var(--card);
-    border:1px solid var(--paper-line);
-    border-radius:3px;
-    padding:10px 14px;
-    margin-bottom:20px;
-    flex-wrap:wrap;
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:10px 14px;
+    margin-bottom:24px; flex-wrap:wrap;
   }
-  .token-bar label{
-    font-size:12px;
-    font-weight:700;
-    color:var(--ink-soft);
-    white-space:nowrap;
-    margin:0;
-  }
-  .token-input-wrap{ position:relative; flex:1; min-width:200px; }
+  .token-bar label{ font-size:12px; color:var(--muted); white-space:nowrap; font-weight:600; }
+  .token-input-wrap{ position:relative; flex:1; min-width:180px; }
   .token-input-wrap input{
-    width:100%;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    padding:7px 34px 7px 10px;
-    border:1px solid var(--paper-line);
-    border-radius:2px;
-    background:#fff;
-    color:var(--ink);
-    letter-spacing:0.3px;
+    width:100%; font-family:'IBM Plex Mono',monospace; font-size:12px;
+    padding:7px 32px 7px 10px; border:1px solid var(--border);
+    border-radius:6px; background:var(--bg); color:var(--text); letter-spacing:0.2px;
   }
-  .token-input-wrap input:focus{ outline:2px solid var(--ink); outline-offset:1px; }
+  .token-input-wrap input:focus{ outline:none; border-color:var(--text); background:#fff; }
   .token-eye{
-    position:absolute; right:6px; top:50%; transform:translateY(-50%);
-    background:none; border:none; cursor:pointer; font-size:13px; color:var(--ink-soft); padding:2px;
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; padding:2px;
   }
-  .token-saved{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--gain);
-    white-space:nowrap;
-    display:none;
-  }
+  .token-saved{ font-size:12px; color:var(--green); display:none; }
   .token-saved.show{ display:inline; }
 
-  /* ── Header ── */
+  /* header */
   header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    border-bottom:3px double var(--ink);
-    padding-bottom:14px;
-    margin-bottom:22px;
-    flex-wrap:wrap;
-    gap:10px;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:24px; flex-wrap:wrap; gap:12px;
   }
-  header h1{
-    font-family:'Fraunces',serif;
-    font-weight:700;
-    font-size:clamp(22px,4vw,30px);
-    margin:0;
-  }
-  header .sub{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--ink-soft);
-  }
+  header h1{ font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+  header .sub{ font-size:13px; color:var(--muted); margin-top:2px; }
   .badge{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--stamp);
-    border:1px solid var(--stamp);
-    padding:3px 9px;
-    border-radius:2px;
-    white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace; font-size:11px;
+    color:var(--muted); background:var(--surface);
+    border:1px solid var(--border); padding:4px 10px; border-radius:20px;
   }
 
-  /* ── Card ── */
+  /* card */
   .card{
-    background:var(--card);
-    border:1px solid var(--paper-line);
-    border-radius:3px;
-    box-shadow:var(--shadow);
-    padding:22px;
-    margin-bottom:20px;
-    position:relative;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:24px; margin-bottom:16px;
   }
   .card h2{
-    font-family:'Fraunces',serif;
-    font-size:16px;
-    font-weight:600;
-    margin:0 0 16px;
-    display:flex;
-    align-items:center;
-    gap:8px;
+    font-size:14px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.8px;
+    margin-bottom:20px;
   }
-  .card h2 .no{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--stamp); }
 
-  label{
-    display:block;
-    font-size:12.5px;
-    color:var(--ink-soft);
-    margin-bottom:5px;
-    font-weight:600;
-  }
+  /* form */
+  label{ display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600; }
   input, select{
-    width:100%;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:15px;
-    padding:9px 10px;
-    border:1px solid var(--paper-line);
-    border-radius:2px;
-    background:#fff;
-    color:var(--ink);
+    width:100%; font-family:'IBM Plex Mono',monospace; font-size:14px;
+    padding:9px 11px; border:1px solid var(--border); border-radius:6px;
+    background:var(--bg); color:var(--text);
   }
-  input:focus, select:focus{ outline:2px solid var(--ink); outline-offset:1px; }
+  input:focus, select:focus{ outline:none; border-color:var(--text); background:var(--surface); }
   input[type="text"]{ font-family:'Sarabun',sans-serif; font-size:14px; }
   .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; }
 
-  /* ── Calc card ── */
+  /* rate chip */
   .rate-chip{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12.5px;
-    padding:5px 10px;
-    border-radius:20px;
-    margin-top:10px;
-    min-height:28px;
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono',monospace; font-size:12px;
+    padding:5px 12px; border-radius:20px; margin-top:14px;
   }
-  .rate-chip.idle{ background:#F0EDE6; color:var(--ink-soft); }
-  .rate-chip.loading{ background:#EBF3FA; color:var(--ink); }
-  .rate-chip.ready{ background:#EAF4EC; color:var(--gain); }
-  .rate-chip.error{ background:#FAEAEA; color:var(--stamp); }
+  .rate-chip.idle{ background:#F2F2F2; color:var(--muted); }
+  .rate-chip.loading{ background:#F2F2F2; color:var(--muted); }
+  .rate-chip.ready{ background:#EDFBF3; color:var(--green); }
+  .rate-chip.error{ background:#FEF2F2; color:var(--red); }
 
+  /* result */
   .result-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-top:16px;
-    padding-top:16px;
-    border-top:1px dashed var(--paper-line);
-    flex-wrap:wrap;
-    gap:14px;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:20px; padding-top:20px; border-top:1px solid var(--border);
+    flex-wrap:wrap; gap:14px;
   }
   .result-amount{
     font-family:'IBM Plex Mono',monospace;
-    font-size:clamp(26px,5vw,36px);
-    font-weight:600;
-    color:var(--gain);
+    font-size:clamp(28px,5vw,38px); font-weight:500; color:var(--text);
   }
-  .result-amount .thb-label{ font-size:14px; color:var(--ink-soft); margin-left:6px; font-weight:400; }
+  .result-amount .thb-label{ font-size:14px; color:var(--muted); margin-left:6px; }
 
-  /* ── Stamp ── */
-  .stamp{
-    position:absolute; top:18px; right:22px;
-    border:2.5px solid var(--stamp); color:var(--stamp);
-    border-radius:50%; width:86px; height:86px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    transform:rotate(-9deg);
-    font-family:'IBM Plex Mono',monospace; text-align:center; line-height:1.2;
-    opacity:0; pointer-events:none; background:rgba(161,61,46,0.03);
-  }
-  .stamp.show{ opacity:0.85; animation:stampIn 0.35s ease; }
-  @keyframes stampIn{
-    0%{ opacity:0; transform:rotate(-9deg) scale(1.4); }
-    60%{ opacity:0.9; transform:rotate(-9deg) scale(0.95); }
-    100%{ opacity:0.85; transform:rotate(-9deg) scale(1); }
-  }
-  .stamp .s-label{ font-size:7px; letter-spacing:1px; text-transform:uppercase; margin-bottom:2px; }
-  .stamp .s-rate{ font-size:14px; font-weight:700; }
-  .stamp .s-date{ font-size:8px; margin-top:2px; }
+  /* stamp (เหลือไว้แต่เบามาก) */
+  .stamp{ display:none; }
 
-  /* ── Buttons ── */
+  /* buttons */
   button.primary{
-    font-family:'Sarabun',sans-serif; font-weight:700; font-size:15px;
-    padding:11px 22px; background:var(--ink); color:var(--paper);
-    border:none; border-radius:3px; cursor:pointer;
-    transition:transform 0.08s ease, background 0.15s ease;
+    font-family:'Sarabun',sans-serif; font-weight:600; font-size:14px;
+    padding:10px 22px; background:var(--text); color:#fff;
+    border:none; border-radius:6px; cursor:pointer;
+    transition:opacity 0.15s ease;
   }
-  button.primary:hover{ background:#142c46; }
-  button.primary:active{ transform:scale(0.98); }
-  button.primary:disabled{ opacity:0.5; cursor:not-allowed; transform:none; }
+  button.primary:hover{ opacity:0.82; }
+  button.primary:active{ opacity:0.7; }
+  button.primary:disabled{ opacity:0.3; cursor:not-allowed; }
   button.secondary{
-    font-family:'Sarabun',sans-serif; font-weight:600; font-size:13.5px;
-    padding:9px 16px; background:transparent; color:var(--ink);
-    border:1px solid var(--ink); border-radius:3px; cursor:pointer;
+    font-family:'Sarabun',sans-serif; font-weight:500; font-size:13px;
+    padding:8px 16px; background:transparent; color:var(--text);
+    border:1px solid var(--border); border-radius:6px; cursor:pointer;
   }
-  button.secondary:hover{ background:rgba(27,58,92,0.06); }
+  button.secondary:hover{ border-color:var(--text); }
   button.ghost{
-    font-family:'IBM Plex Mono',monospace; font-size:12px;
-    color:var(--stamp); background:none; border:none; cursor:pointer;
-    text-decoration:underline; padding:4px;
+    font-size:12px; color:var(--muted); background:none; border:none;
+    cursor:pointer; padding:4px; text-decoration:none;
   }
+  button.ghost:hover{ color:var(--red); }
 
-  /* ── Table ── */
+  /* table */
   table{ width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:13px; }
   thead th{
-    text-align:left; font-family:'Sarabun',sans-serif; font-size:12.5px;
-    font-weight:700; color:var(--ink-soft); border-bottom:2px solid var(--ink); padding:8px 6px;
+    text-align:left; font-family:'Sarabun',sans-serif; font-size:11px; font-weight:700;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.6px;
+    border-bottom:1px solid var(--border); padding:8px 8px;
   }
-  tbody td{ padding:9px 6px; border-bottom:1px solid var(--paper-line); vertical-align:middle; }
-  tbody tr:hover{ background:rgba(27,58,92,0.03); }
+  tbody td{ padding:10px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--bg); }
   td.num{ text-align:right; }
-  td.note-cell{ font-family:'Sarabun',sans-serif; font-size:12.5px; color:var(--ink-soft); }
-  .del-btn{ background:none; border:none; color:var(--stamp); cursor:pointer; font-size:13px; padding:2px 6px; }
+  td.note-cell{ font-family:'Sarabun',sans-serif; font-size:13px; color:var(--muted); }
+  .del-btn{ background:none; border:none; color:var(--border); cursor:pointer; font-size:13px; padding:2px 6px; }
+  .del-btn:hover{ color:var(--red); }
 
-  /* ── Filter bar ── */
-  .filter-bar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:end; }
-  .filter-bar > div{ min-width:130px; }
+  /* filter bar */
+  .filter-bar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:flex-end; }
+  .filter-bar > div{ min-width:120px; }
 
-  .empty-state{ text-align:center; padding:34px 10px; color:var(--ink-soft); font-size:13.5px; }
+  .empty-state{
+    text-align:center; padding:40px 10px;
+    color:var(--muted); font-size:13px;
+  }
 
-  /* ── Month summary ── */
-  .month-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:10px; margin-top:6px; }
-  .month-item{ border:1px solid var(--paper-line); border-radius:3px; padding:12px 14px; background:#fffefc; }
-  .month-item .mi-label{ font-family:'Sarabun',sans-serif; font-size:12px; color:var(--ink-soft); font-weight:600; margin-bottom:4px; }
-  .month-item .mi-total{ font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:600; color:var(--ink); }
-  .month-item .mi-count{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-top:3px; }
+  /* month summary */
+  .month-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; }
+  .month-item{
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; background:var(--surface);
+  }
+  .month-item .mi-label{ font-size:11px; color:var(--muted); font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+  .month-item .mi-total{ font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:500; color:var(--text); }
+  .month-item .mi-count{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-top:4px; }
 
-  /* ── Spinner ── */
+  /* spinner */
   .spin{
-    display:inline-block; width:11px; height:11px;
-    border:2px solid currentColor; border-top-color:transparent;
+    display:inline-block; width:10px; height:10px;
+    border:1.5px solid currentColor; border-top-color:transparent;
     border-radius:50%; animation:spin 0.6s linear infinite; vertical-align:middle;
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  /* ── Toast ── */
+  /* toast */
   .toast{
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(10px);
-    background:var(--ink); color:var(--paper); padding:10px 20px; border-radius:20px;
-    font-size:13px; font-family:'Sarabun',sans-serif; opacity:0; pointer-events:none;
-    transition:opacity 0.25s ease, transform 0.25s ease; z-index:50;
+    position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(8px);
+    background:var(--text); color:#fff; padding:9px 18px; border-radius:20px;
+    font-size:13px; opacity:0; pointer-events:none;
+    transition:opacity 0.2s ease, transform 0.2s ease; z-index:50;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  footer{ text-align:center; font-size:11px; color:var(--ink-soft); margin-top:28px; font-family:'IBM Plex Mono',monospace; }
+  footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
+  hr{ border:none; border-top:1px solid var(--border); margin:0; }
+
+  /* theme toggle */
+  .theme-toggle{
+    background:none; border:1px solid var(--border); border-radius:20px;
+    padding:5px 12px; cursor:pointer; font-size:12px; color:var(--muted);
+    display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .theme-toggle:hover{ border-color:var(--text); color:var(--text); }
+  .theme-toggle .icon{ font-size:13px; line-height:1; }
 </style>
 </head>
 <body>
@@ -277,21 +218,27 @@
 
   <!-- Token bar -->
   <div class="token-bar">
-    <label>🔑 BOT API Token</label>
+    <label>API TOKEN</label>
     <div class="token-input-wrap">
       <input type="password" id="api-token" placeholder="วาง Authorization Token ที่ได้รับจาก BOT Open Data Portal" autocomplete="off">
       <button class="token-eye" onclick="toggleToken()" id="token-eye-btn">👁</button>
     </div>
-    <button class="secondary" style="white-space:nowrap; padding:7px 14px; font-size:13px;" onclick="saveToken()">บันทึก Token</button>
+    <button class="secondary" style="white-space:nowrap; padding:7px 14px; font-size:12px;" onclick="saveToken()">บันทึก</button>
     <span class="token-saved" id="token-saved-label">✓ บันทึกแล้ว</span>
   </div>
 
   <header>
     <div>
-      <h1>สมุดบัญชีแลกเปลี่ยน</h1>
-      <div class="sub">USD → THB · อัตราขายถัวเฉลี่ย (BOT)</div>
+      <h1>USD → THB</h1>
+      <div class="sub">อัตราขายถัวเฉลี่ย · ธนาคารแห่งประเทศไทย</div>
     </div>
-    <div class="badge" id="history-badge">ยังไม่มีรายการ</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="badge" id="history-badge">ยังไม่มีรายการ</div>
+      <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">
+        <span class="icon" id="theme-icon">🌙</span>
+        <span id="theme-label">Dark</span>
+      </button>
+    </div>
   </header>
 
   <!-- CALC -->
@@ -301,7 +248,7 @@
       <div class="s-rate" id="stamp-rate">-</div>
       <div class="s-date" id="stamp-date">-</div>
     </div>
-    <h2><span class="no">๑.</span> คำนวณแลกเปลี่ยน</h2>
+    <h2>คำนวณ</h2>
     <div class="grid">
       <div>
         <label for="calc-date">วันที่ทำรายการ</label>
@@ -330,7 +277,7 @@
 
   <!-- HISTORY -->
   <section class="card">
-    <h2><span class="no">๒.</span> ประวัติรายการ</h2>
+    <h2>ประวัติรายการ</h2>
     <div class="filter-bar">
       <div>
         <label for="filter-view">ดูแบบ</label>
@@ -346,23 +293,23 @@
         <input type="text" id="filter-value" onchange="renderHistory()">
       </div>
       <div style="flex:1;"></div>
-      <button class="secondary" onclick="exportExcel()">📥 Export Excel</button>
+      <button class="secondary" onclick="exportExcel()">Export Excel</button>
       <button class="ghost" onclick="clearAll()">ล้างข้อมูลทั้งหมด</button>
     </div>
     <div id="history-wrap">
-      <div class="empty-state">ยังไม่มีรายการ — เลือกวันที่แล้วกรอก USD เพื่อเริ่มบันทึก</div>
+      <div class="empty-state">ยังไม่มีรายการ</div>
     </div>
   </section>
 
   <!-- MONTHLY SUMMARY -->
   <section class="card">
-    <h2><span class="no">๓.</span> สรุปยอดรวมรายเดือน</h2>
+    <h2>สรุปรายเดือน</h2>
     <div id="summary-wrap">
-      <div class="empty-state">ยังไม่มีข้อมูลสรุป</div>
+      <div class="empty-state">ยังไม่มีข้อมูล</div>
     </div>
   </section>
 
-  <footer>ข้อมูลบันทึกในเบราว์เซอร์นี้เท่านั้น (localStorage) · ไม่มีการส่งข้อมูลออกไปที่อื่น</footer>
+  <footer>ข้อมูลถูกเก็บใน localStorage · ไม่มีการส่งออกนอกเครื่อง</footer>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -622,7 +569,7 @@ function delRecord(id){
 function renderSummary(){
   const hist = loadHistory();
   const wrap = document.getElementById('summary-wrap');
-  if(!hist.length){ wrap.innerHTML='<div class="empty-state">ยังไม่มีข้อมูลสรุป</div>'; return; }
+  if(!hist.length){ wrap.innerHTML='<div class="empty-state">ยังไม่มีข้อมูล</div>'; return; }
   const byM={};
   hist.forEach(r=>{
     const m=r.date.slice(0,7);
@@ -675,14 +622,31 @@ function clearAll(){
   showToast('ล้างข้อมูลทั้งหมดแล้ว');
 }
 
+/* ─── Theme ─── */
+const THEME_KEY = 'fx_theme';
+function applyTheme(dark){
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.getElementById('theme-icon').textContent  = dark ? '☀️' : '🌙';
+  document.getElementById('theme-label').textContent = dark ? 'Light' : 'Dark';
+}
+function toggleTheme(){
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = !isDark;
+  applyTheme(next);
+  localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+}
+
 /* ─── Init ─── */
 (function(){
+  // โหลด theme
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  applyTheme(savedTheme === 'dark');
+
   const saved=loadToken();
   if(saved){ document.getElementById('api-token').value=saved;
     document.getElementById('token-saved-label').classList.add('show'); }
   document.getElementById('calc-date').value=todayStr();
   updateBadge(); renderHistory(); renderSummary();
-  // auto-fetch อัตราวันนี้เลยถ้ามี token
   if(saved) onDateChange();
 })();
 </script>
