@@ -271,6 +271,30 @@
   .modal .modal-result small{ font-size:13px; color:var(--muted); margin-left:4px; }
   .modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
 
+  /* grand total */
+  .grand-total{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:1px; background:var(--border);
+    border:1px solid var(--border); border-radius:var(--radius);
+    overflow:hidden; margin-bottom:20px;
+  }
+  .grand-total-item{
+    background:var(--surface); padding:16px 20px;
+  }
+  .grand-total-item .gt-label{
+    font-size:11px; color:var(--muted); font-weight:600;
+    text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px;
+  }
+  .grand-total-item .gt-value{
+    font-family:'IBM Plex Mono',monospace; font-size:22px;
+    font-weight:500; color:var(--text);
+  }
+  .grand-total-item .gt-sub{
+    font-family:'IBM Plex Mono',monospace; font-size:11px;
+    color:var(--muted); margin-top:3px;
+  }
+
   footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
   hr{ border:none; border-top:1px solid var(--border); margin:0; }
 
@@ -375,6 +399,7 @@
   <!-- MONTHLY SUMMARY -->
   <section class="card">
     <h2>สรุปรายเดือน</h2>
+    <div id="grand-total-wrap"></div>
     <div id="summary-wrap">
       <div class="empty-state">ยังไม่มีข้อมูล</div>
     </div>
@@ -769,8 +794,41 @@ document.addEventListener('keydown', e=>{
 /* ─── Monthly summary ─── */
 function renderSummary(){
   const hist = loadHistory();
-  const wrap = document.getElementById('summary-wrap');
-  if(!hist.length){ wrap.innerHTML='<div class="empty-state">ยังไม่มีข้อมูล</div>'; return; }
+  const gtWrap = document.getElementById('grand-total-wrap');
+  const wrap   = document.getElementById('summary-wrap');
+
+  if(!hist.length){
+    gtWrap.innerHTML = '';
+    wrap.innerHTML = '<div class="empty-state">ยังไม่มีข้อมูล</div>';
+    return;
+  }
+
+  // คำนวณ grand total
+  const totalUsd = hist.reduce((s,r)=>s+r.usd, 0);
+  const totalThb = hist.reduce((s,r)=>s+r.thb, 0);
+  const totalCount = hist.length;
+  const avgRate = totalUsd > 0 ? totalThb / totalUsd : 0;
+
+  gtWrap.innerHTML = `
+    <div class="grand-total">
+      <div class="grand-total-item">
+        <div class="gt-label">รวมทั้งหมด (THB)</div>
+        <div class="gt-value">${fmt(totalThb,2)}</div>
+        <div class="gt-sub">${totalCount} รายการ</div>
+      </div>
+      <div class="grand-total-item">
+        <div class="gt-label">รวมทั้งหมด (USD)</div>
+        <div class="gt-value">${fmt(totalUsd,2)}</div>
+        <div class="gt-sub">&nbsp;</div>
+      </div>
+      <div class="grand-total-item">
+        <div class="gt-label">อัตราเฉลี่ยถ่วงน้ำหนัก</div>
+        <div class="gt-value">${fmt(avgRate,4)}</div>
+        <div class="gt-sub">THB / USD</div>
+      </div>
+    </div>`;
+
+  // สรุปรายเดือน
   const byM={};
   hist.forEach(r=>{
     const m=r.date.slice(0,7);
