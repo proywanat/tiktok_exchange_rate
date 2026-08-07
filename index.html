@@ -226,6 +226,51 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
+  /* edit button */
+  .edit-btn{
+    background:none; border:1px solid var(--border); border-radius:4px;
+    color:var(--muted); cursor:pointer; font-size:11px; padding:3px 7px;
+    margin-right:4px;
+  }
+  .edit-btn:hover{ border-color:var(--text); color:var(--text); }
+
+  /* modal overlay */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.5);
+    display:flex; align-items:center; justify-content:center;
+    z-index:100; opacity:0; pointer-events:none;
+    transition:opacity 0.2s ease;
+  }
+  .modal-overlay.show{ opacity:1; pointer-events:all; }
+  .modal{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:28px; width:100%; max-width:420px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+    transform:translateY(10px); transition:transform 0.2s ease;
+  }
+  .modal-overlay.show .modal{ transform:translateY(0); }
+  .modal h3{ font-size:15px; font-weight:600; margin:0 0 20px; }
+  .modal .modal-field{ margin-bottom:16px; }
+  .modal .modal-field label{ font-size:12px; color:var(--muted); font-weight:600; margin-bottom:5px; display:block; }
+  .modal .modal-field input{
+    width:100%; font-family:'IBM Plex Mono',monospace; font-size:15px;
+    padding:9px 11px; border:1px solid var(--border); border-radius:6px;
+    background:var(--bg); color:var(--text);
+  }
+  .modal .modal-field input:focus{ outline:none; border-color:var(--text); background:var(--surface); }
+  .modal .modal-info{
+    font-size:12px; color:var(--muted); background:var(--bg);
+    border:1px solid var(--border); border-radius:6px;
+    padding:8px 12px; margin-bottom:20px; font-family:'IBM Plex Mono',monospace;
+  }
+  .modal .modal-info span{ color:var(--text); font-weight:500; }
+  .modal .modal-result{
+    font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:500;
+    color:var(--text); margin-bottom:20px; text-align:right;
+  }
+  .modal .modal-result small{ font-size:13px; color:var(--muted); margin-left:4px; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
   footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
   hr{ border:none; border-top:1px solid var(--border); margin:0; }
 
@@ -338,6 +383,30 @@
   <footer>ข้อมูลถูกเก็บใน localStorage · ไม่มีการส่งออกนอกเครื่อง</footer>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="edit-overlay" onclick="closeEditModal(event)">
+  <div class="modal">
+    <h3>แก้ไขรายการ</h3>
+    <div class="modal-info">
+      วันที่ <span id="edit-date-label">—</span> · อัตราขาย <span id="edit-rate-label">—</span> THB/USD
+    </div>
+    <div class="modal-field">
+      <label for="edit-usd-input">จำนวนเงิน (USD)</label>
+      <input type="number" id="edit-usd-input" step="0.01" min="0.01"
+             oninput="updateEditResult()">
+    </div>
+    <div class="modal-field">
+      <label for="edit-note-input">หมายเหตุ (ไม่บังคับ)</label>
+      <input type="text" id="edit-note-input" placeholder="เช่น ใบสั่งซื้อ #123">
+    </div>
+    <div class="modal-result" id="edit-result">0.00 <small>THB</small></div>
+    <div class="modal-actions">
+      <button class="secondary" onclick="closeEditModal()">ยกเลิก</button>
+      <button class="primary" onclick="saveEdit()">บันทึก</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ─── Constants ─── */
@@ -596,7 +665,9 @@ function renderHistory(){
         <td class="num">${fmt(r.rate,4)}${r.rateDate && r.rateDate!==r.date ? `<span title="ใช้อัตราวันที่ ${r.rateDate}" style="color:var(--stamp);font-size:10px;margin-left:2px">*</span>` : ''}</td>
         <td class="num">${fmt(r.thb,2)}</td>
         <td class="note-cell">${r.note?escHtml(r.note):'—'}</td>
-        <td><button class="del-btn" title="ลบรายการ" onclick="delRecord(${r.id})">✕</button></td>
+        <td style="white-space:nowrap;">
+          <button class="edit-btn" title="แก้ไข USD" onclick="openEditModal(${r.id})">แก้ไข</button><button class="del-btn" title="ลบรายการ" onclick="delRecord(${r.id})">✕</button>
+        </td>
       </tr>`).join('')}
     </tbody></table>`;
 
@@ -640,6 +711,60 @@ function delRecord(id){
   updateBadge(); renderHistory(); renderSummary();
   showToast('ลบรายการแล้ว');
 }
+
+/* ─── Edit Modal ─── */
+let editingId = null;
+
+function openEditModal(id){
+  const rec = loadHistory().find(r=>r.id===id);
+  if(!rec) return;
+  editingId = id;
+
+  document.getElementById('edit-date-label').textContent = rec.date;
+  document.getElementById('edit-rate-label').textContent = fmt(rec.rate,4);
+  document.getElementById('edit-usd-input').value = rec.usd;
+  document.getElementById('edit-note-input').value = rec.note || '';
+  updateEditResult();
+
+  document.getElementById('edit-overlay').classList.add('show');
+  setTimeout(()=> document.getElementById('edit-usd-input').focus(), 50);
+}
+
+function updateEditResult(){
+  const rec = loadHistory().find(r=>r.id===editingId);
+  if(!rec) return;
+  const usd = parseFloat(document.getElementById('edit-usd-input').value) || 0;
+  const thb = usd * rec.rate;
+  document.getElementById('edit-result').innerHTML =
+    `${fmt(thb,2)} <small>THB</small>`;
+}
+
+function closeEditModal(e){
+  if(e && e.target !== document.getElementById('edit-overlay')) return;
+  document.getElementById('edit-overlay').classList.remove('show');
+  editingId = null;
+}
+
+function saveEdit(){
+  const usd = parseFloat(document.getElementById('edit-usd-input').value);
+  const note = document.getElementById('edit-note-input').value.trim();
+  if(isNaN(usd) || usd <= 0){ showToast('กรุณากรอก USD ที่ถูกต้อง'); return; }
+
+  const hist = loadHistory().map(r=>{
+    if(r.id !== editingId) return r;
+    return { ...r, usd, thb: usd * r.rate, note };
+  });
+  saveHistory(hist);
+  document.getElementById('edit-overlay').classList.remove('show');
+  editingId = null;
+  updateBadge(); renderHistory(); renderSummary();
+  showToast('แก้ไขรายการเรียบร้อย');
+}
+
+// ปิด modal ด้วย Escape
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && editingId) closeEditModal();
+});
 
 /* ─── Monthly summary ─── */
 function renderSummary(){
