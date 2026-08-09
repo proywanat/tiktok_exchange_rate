@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --bg:#F7F7F7;
@@ -295,6 +297,23 @@
     color:var(--muted); margin-top:3px;
   }
 
+  /* firebase sync indicator */
+  .sync-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--muted);
+    display:inline-block; margin-left:6px; vertical-align:middle;
+    transition:background 0.3s ease;
+  }
+  .sync-dot.syncing{ background:#F59E0B; animation:pulse 1s infinite; }
+  .sync-dot.ok{ background:var(--green); }
+  .sync-dot.error{ background:var(--red); }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* db loading state */
+  .db-loading{
+    text-align:center; padding:40px 10px; color:var(--muted); font-size:13px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+
   footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
   hr{ border:none; border-top:1px solid var(--border); margin:0; }
 
@@ -328,7 +347,7 @@
       <div class="sub">อัตราขายถัวเฉลี่ย · ธนาคารแห่งประเทศไทย</div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <div class="badge" id="history-badge">ยังไม่มีรายการ</div>
+      <div class="badge" id="history-badge">ยังไม่มีรายการ<span class="sync-dot" id="sync-dot" title="สถานะการซิงค์"></span></div>
       <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">
         <span class="icon" id="theme-icon">🌙</span>
         <span id="theme-label">Dark</span>
@@ -405,7 +424,7 @@
     </div>
   </section>
 
-  <footer>ข้อมูลถูกเก็บใน localStorage · ไม่มีการส่งออกนอกเครื่อง</footer>
+  <footer>ข้อมูลซิงค์กับ Firebase Firestore · เข้าถึงได้ทุก platform</footer>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -437,13 +456,95 @@
 /* ─── Constants ─── */
 const BOT_URL   = 'https://gateway.api.bot.or.th/Stat-ExchangeRate/v2/DAILY_AVG_EXG_RATE/';
 const KEY_TOKEN = 'fx_bot_token';
-const KEY_HIST  = 'fx_history';
+const THEME_KEY_LS = 'fx_theme';
 
-/* ─── Storage helpers ─── */
-const loadHistory = () => { try{ return JSON.parse(localStorage.getItem(KEY_HIST))||[]; }catch(e){ return []; } };
-const saveHistory = h => localStorage.setItem(KEY_HIST, JSON.stringify(h));
-const loadToken   = ()  => localStorage.getItem(KEY_TOKEN) || '';
-const storeToken  = t  => localStorage.setItem(KEY_TOKEN, t);
+/* ─── Firebase init ─── */
+const firebaseConfig = {
+  apiKey:            "AIzaSyB9TxRrnUh5yafQi1j0GBMYWX7mIS8LT0U",
+  authDomain:        "fir-db-4a083.firebaseapp.com",
+  projectId:         "fir-db-4a083",
+  storageBucket:     "fir-db-4a083.firebasestorage.app",
+  messagingSenderId: "703897619403",
+  appId:             "1:703897619403:web:8971217739755539dbc44e",
+  measurementId:     "G-366N7SYX17"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const COLLECTION = 'fx_records';
+
+/* ─── Sync dot ─── */
+function setSyncDot(state){ // 'syncing' | 'ok' | 'error' | ''
+  const dot = document.getElementById('sync-dot');
+  if(dot) dot.className = 'sync-dot ' + state;
+}
+
+/* ─── Storage helpers (Firestore) ─── */
+let _histCache = null; // local cache เพื่อความเร็ว
+
+async function loadHistory(){
+  if(_histCache !== null) return _histCache;
+  try{
+    setSyncDot('syncing');
+    const snap = await db.collection(COLLECTION).orderBy('date','desc').get();
+    _histCache = snap.docs.map(d=>({ id: d.data().id, ...d.data() }));
+    setSyncDot('ok');
+    return _histCache;
+  }catch(e){
+    setSyncDot('error');
+    console.error('loadHistory error:', e);
+    return [];
+  }
+}
+
+async function saveRecord(rec){
+  // เพิ่มหรืออัปเดต 1 record โดยใช้ id เป็น document key
+  try{
+    setSyncDot('syncing');
+    await db.collection(COLLECTION).doc(String(rec.id)).set(rec);
+    // อัปเดต cache
+    if(_histCache !== null){
+      const idx = _histCache.findIndex(r=>r.id===rec.id);
+      if(idx>=0) _histCache[idx]=rec; else _histCache.push(rec);
+    }
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('error');
+    showToast('บันทึกไม่สำเร็จ: ' + e.message);
+    throw e;
+  }
+}
+
+async function deleteRecord_db(id){
+  try{
+    setSyncDot('syncing');
+    await db.collection(COLLECTION).doc(String(id)).delete();
+    if(_histCache !== null) _histCache = _histCache.filter(r=>r.id!==id);
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('error');
+    showToast('ลบไม่สำเร็จ: ' + e.message);
+    throw e;
+  }
+}
+
+async function clearAllRecords_db(){
+  try{
+    setSyncDot('syncing');
+    const snap = await db.collection(COLLECTION).get();
+    const batch = db.batch();
+    snap.docs.forEach(d=>batch.delete(d.ref));
+    await batch.commit();
+    _histCache = [];
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('error');
+    showToast('ล้างข้อมูลไม่สำเร็จ: ' + e.message);
+    throw e;
+  }
+}
+
+const loadToken  = () => localStorage.getItem(KEY_TOKEN) || '';
+const storeToken = t  => localStorage.setItem(KEY_TOKEN, t);
 
 /* ─── Misc helpers ─── */
 const fmt = (n,d=2) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -592,41 +693,56 @@ function updateResultDisplay(){
 }
 
 /* ─── Do calculate & save ─── */
-function doCalculate(){
+async function doCalculate(){
   const date = document.getElementById('calc-date').value;
   const usd  = parseFloat(document.getElementById('calc-usd').value);
   const note = document.getElementById('calc-note').value.trim();
 
   if(!date || !currentRate || isNaN(usd) || usd <= 0) return;
 
+  const btn = document.getElementById('btn-calc');
+  btn.disabled = true;
+
   const thb = usd * currentRate;
-  const rec = { id:Date.now(), date, usd, rate:currentRate, rateDate:currentRateDate, thb, note };
-  const hist = loadHistory();
-  hist.push(rec);
-  saveHistory(hist);
+  const rec = { id:Date.now(), date, usd, rate:currentRate, rateDate:currentRateDate||date, thb, note };
 
-  // stamp animation
-  const stamp = document.getElementById('calc-stamp');
-  document.getElementById('stamp-rate').textContent = fmt(currentRate,4);
-  document.getElementById('stamp-date').textContent = date;
-  stamp.classList.remove('show');
-  void stamp.offsetWidth;
-  stamp.classList.add('show');
+  try{
+    await saveRecord(rec);
 
-  document.getElementById('calc-usd').value = '';
-  document.getElementById('calc-note').value = '';
-  updateResultDisplay();
-  updateBadge();
-  renderHistory();
-  renderSummary();
-  showToast(`บันทึกแล้ว · ${fmt(usd,2)} USD = ${fmt(thb,2)} THB`);
+    // stamp animation
+    const stamp = document.getElementById('calc-stamp');
+    document.getElementById('stamp-rate').textContent = fmt(currentRate,4);
+    document.getElementById('stamp-date').textContent = date;
+    stamp.classList.remove('show');
+    void stamp.offsetWidth;
+    stamp.classList.add('show');
+
+    document.getElementById('calc-usd').value = '';
+    document.getElementById('calc-note').value = '';
+    updateResultDisplay();
+    await refreshAll();
+    showToast(`บันทึกแล้ว · ${fmt(usd,2)} USD = ${fmt(thb,2)} THB`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ─── Refresh all (async) ─── */
+async function refreshAll(){
+  _histCache = null; // invalidate cache → โหลดใหม่จาก Firestore
+  const hist = await loadHistory();
+  updateBadge(hist);
+  renderHistory(hist);
+  renderSummary(hist);
 }
 
 /* ─── Badge ─── */
-function updateBadge(){
-  const n = loadHistory().length;
-  document.getElementById('history-badge').textContent =
-    n > 0 ? `${n} รายการ` : 'ยังไม่มีรายการ';
+function updateBadge(hist){
+  const n = (hist||[]).length;
+  const el = document.getElementById('history-badge');
+  el.innerHTML = (n > 0 ? `${n} รายการ` : 'ยังไม่มีรายการ') +
+    '<span class="sync-dot" id="sync-dot"></span>';
+  setSyncDot('ok');
 }
 
 /* ─── Filter ─── */
@@ -654,8 +770,9 @@ function goToHistoryPage(p){
   renderHistory();
 }
 
-function renderHistory(){
-  const hist = loadHistory().slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+function renderHistory(hist){
+  if(!hist) hist = _histCache || [];
+  hist = hist.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   const view = document.getElementById('filter-view').value;
   const val  = document.getElementById('filter-value').value;
 
@@ -731,17 +848,21 @@ function renderPagination(page, totalPages, totalRows){
   </div>`;
 }
 
-function delRecord(id){
-  saveHistory(loadHistory().filter(r=>r.id!==id));
-  updateBadge(); renderHistory(); renderSummary();
-  showToast('ลบรายการแล้ว');
+async function delRecord(id){
+  if(!confirm('ลบรายการนี้?')) return;
+  try{
+    await deleteRecord_db(id);
+    await refreshAll();
+    showToast('ลบรายการแล้ว');
+  }catch(e){}
 }
 
 /* ─── Edit Modal ─── */
 let editingId = null;
 
-function openEditModal(id){
-  const rec = loadHistory().find(r=>r.id===id);
+async function openEditModal(id){
+  const hist = await loadHistory();
+  const rec = hist.find(r=>r.id===id);
   if(!rec) return;
   editingId = id;
 
@@ -755,8 +876,9 @@ function openEditModal(id){
   setTimeout(()=> document.getElementById('edit-usd-input').focus(), 50);
 }
 
-function updateEditResult(){
-  const rec = loadHistory().find(r=>r.id===editingId);
+async function updateEditResult(){
+  const hist = await loadHistory();
+  const rec = hist.find(r=>r.id===editingId);
   if(!rec) return;
   const usd = parseFloat(document.getElementById('edit-usd-input').value) || 0;
   const thb = usd * rec.rate;
@@ -770,20 +892,23 @@ function closeEditModal(e){
   editingId = null;
 }
 
-function saveEdit(){
+async function saveEdit(){
   const usd = parseFloat(document.getElementById('edit-usd-input').value);
   const note = document.getElementById('edit-note-input').value.trim();
   if(isNaN(usd) || usd <= 0){ showToast('กรุณากรอก USD ที่ถูกต้อง'); return; }
 
-  const hist = loadHistory().map(r=>{
-    if(r.id !== editingId) return r;
-    return { ...r, usd, thb: usd * r.rate, note };
-  });
-  saveHistory(hist);
-  document.getElementById('edit-overlay').classList.remove('show');
-  editingId = null;
-  updateBadge(); renderHistory(); renderSummary();
-  showToast('แก้ไขรายการเรียบร้อย');
+  const hist = await loadHistory();
+  const rec = hist.find(r=>r.id===editingId);
+  if(!rec) return;
+
+  const updated = { ...rec, usd, thb: usd * rec.rate, note };
+  try{
+    await saveRecord(updated);
+    document.getElementById('edit-overlay').classList.remove('show');
+    editingId = null;
+    await refreshAll();
+    showToast('แก้ไขรายการเรียบร้อย');
+  }catch(e){}
 }
 
 // ปิด modal ด้วย Escape
@@ -792,8 +917,8 @@ document.addEventListener('keydown', e=>{
 });
 
 /* ─── Monthly summary ─── */
-function renderSummary(){
-  const hist = loadHistory();
+function renderSummary(hist){
+  if(!hist) hist = _histCache || [];
   const gtWrap = document.getElementById('grand-total-wrap');
   const wrap   = document.getElementById('summary-wrap');
 
@@ -844,8 +969,8 @@ function renderSummary(){
 }
 
 /* ─── Export Excel ─── */
-function exportExcel(){
-  const hist=loadHistory().slice().sort((a,b)=>a.date.localeCompare(b.date));
+async function exportExcel(){
+  const hist=( await loadHistory() ).slice().sort((a,b)=>a.date.localeCompare(b.date));
   if(!hist.length){ showToast('ยังไม่มีข้อมูลให้ export'); return; }
 
   const detail=[['วันที่','จำนวน USD','อัตราขาย (THB/USD)','ยอด THB','หมายเหตุ']];
@@ -873,12 +998,14 @@ function exportExcel(){
 }
 
 /* ─── Clear all ─── */
-function clearAll(){
+async function clearAll(){
   if(!confirm('ล้างประวัติรายการทั้งหมด? (Token ยังคงอยู่)')) return;
-  localStorage.removeItem(KEY_HIST);
-  rateCache={}; currentRate=null; currentRateDate=null;
-  updateBadge(); renderHistory(); renderSummary();
-  showToast('ล้างข้อมูลทั้งหมดแล้ว');
+  try{
+    await clearAllRecords_db();
+    rateCache={}; currentRate=null; currentRateDate=null;
+    await refreshAll();
+    showToast('ล้างข้อมูลทั้งหมดแล้ว');
+  }catch(e){}
 }
 
 /* ─── Theme ─── */
@@ -892,21 +1019,29 @@ function toggleTheme(){
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const next = !isDark;
   applyTheme(next);
-  localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+  localStorage.setItem(THEME_KEY_LS, next ? 'dark' : 'light');
 }
 
 /* ─── Init ─── */
 (function(){
   // โหลด theme
-  const savedTheme = localStorage.getItem(THEME_KEY);
+  const savedTheme = localStorage.getItem(THEME_KEY_LS);
   applyTheme(savedTheme === 'dark');
 
   const saved=loadToken();
   if(saved){ document.getElementById('api-token').value=saved;
     document.getElementById('token-saved-label').classList.add('show'); }
   document.getElementById('calc-date').value=todayStr();
-  updateBadge(); renderHistory(); renderSummary();
-  if(saved) onDateChange();
+
+  // โหลดข้อมูลจาก Firestore
+  document.getElementById('history-wrap').innerHTML =
+    '<div class="db-loading"><span class="spin"></span> กำลังโหลดข้อมูลจาก Firebase...</div>';
+  document.getElementById('summary-wrap').innerHTML =
+    '<div class="db-loading"><span class="spin"></span></div>';
+
+  refreshAll().then(()=>{
+    if(saved) onDateChange();
+  });
 })();
 </script>
 </body>
