@@ -7,8 +7,39 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script type="module" id="firebase-init-module">
+// Firebase ESM — ใช้ REST transport แทน WebChannel เพื่อรองรับ Netlify
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-lite.js';
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyB9TxRrnUh5yafQi1j0GBMYWX7mIS8LT0U",
+  authDomain:        "fir-db-4a083.firebaseapp.com",
+  projectId:         "fir-db-4a083",
+  storageBucket:     "fir-db-4a083.firebasestorage.app",
+  messagingSenderId: "703897619403",
+  appId:             "1:703897619403:web:8971217739755539dbc44e",
+  measurementId:     "G-366N7SYX17"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// expose ให้ script อื่นใช้ได้ผ่าน window
+window._db         = db;
+window._col        = (name) => collection(db, name);
+window._doc        = (name, id) => doc(db, name, id);
+window._getDocs    = getDocs;
+window._setDoc     = setDoc;
+window._deleteDoc  = deleteDoc;
+window._query      = query;
+window._orderBy    = orderBy;
+window._writeBatch = writeBatch;
+window._fbReady    = true;
+
+// แจ้ง script หลักว่า Firebase พร้อมแล้ว
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
   :root{
     --bg:#F7F7F7;
@@ -317,6 +348,145 @@
   footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
   hr{ border:none; border-top:1px solid var(--border); margin:0; }
 
+  /* ── Responsive: iPhone 14 Plus (430px) และมือถือทั่วไป ── */
+  @media (max-width: 600px){
+
+    /* spacing */
+    body{ padding:16px 12px 100px; font-size:15px; }
+    .wrap{ max-width:100%; }
+
+    /* token bar — ซ่อน label, input เต็มแถว */
+    .token-bar{
+      padding:10px 12px; gap:8px;
+      flex-direction:column; align-items:stretch;
+    }
+    .token-bar label{ display:none; }
+    .token-input-wrap{ min-width:unset; }
+    .token-bar button.secondary{ width:100%; padding:10px; font-size:14px; }
+
+    /* header */
+    header{ margin-bottom:16px; gap:8px; }
+    header h1{ font-size:22px; }
+    header > div:last-child{ width:100%; justify-content:space-between; }
+
+    /* card */
+    .card{ padding:16px 14px; margin-bottom:12px; }
+    .card h2{ font-size:12px; margin-bottom:14px; }
+
+    /* form grid — stack ทุก field */
+    .grid{ grid-template-columns:1fr; gap:12px; }
+
+    /* input/select ใหญ่ขึ้นสำหรับนิ้ว */
+    input, select{
+      font-size:16px;  /* ป้องกัน zoom บน iOS */
+      padding:12px 11px;
+    }
+    input[type="text"]{ font-size:16px; }
+
+    /* result row — stack amount + ปุ่ม */
+    .result-row{
+      flex-direction:column; align-items:stretch; gap:12px; margin-top:16px; padding-top:16px;
+    }
+    .result-amount{ font-size:36px; }
+    button.primary{
+      width:100%; padding:14px; font-size:16px;
+      border-radius:10px;
+    }
+
+    /* rate chip */
+    .rate-chip{ font-size:13px; padding:7px 12px; margin-top:12px; width:100%; }
+
+    /* filter bar — wrap แน่น */
+    .filter-bar{
+      gap:8px; margin-bottom:14px;
+    }
+    .filter-bar > div{ min-width:unset; flex:1; }
+    .filter-bar > div[style*="flex:1"]{ display:none; } /* ซ่อน spacer */
+    .filter-bar button.secondary,
+    .filter-bar button.ghost{
+      font-size:13px; padding:8px 12px; white-space:nowrap;
+    }
+    #per-page{ font-size:14px; }
+
+    /* table — card style แทน horizontal scroll */
+    table, thead, tbody, tr, td, th{ display:block; }
+    thead{ display:none; } /* ซ่อน header */
+    tbody tr{
+      border:1px solid var(--border); border-radius:8px;
+      margin-bottom:10px; padding:12px; position:relative;
+      background:var(--surface);
+    }
+    tbody tr:last-child{ margin-bottom:0; }
+    tbody tr:hover{ background:var(--surface); }
+    tbody td{
+      border:none; padding:3px 0;
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:14px;
+    }
+    tbody td::before{
+      content:attr(data-label);
+      font-family:'Sarabun',sans-serif; font-size:11px;
+      color:var(--muted); font-weight:600; text-transform:uppercase;
+      letter-spacing:0.4px; min-width:60px; flex-shrink:0;
+    }
+    td.num{ justify-content:space-between; text-align:right; }
+    td.note-cell{ font-size:14px; }
+
+    /* action cell (edit + delete) — วางขวาล่าง */
+    tbody td:last-child{
+      justify-content:flex-end; gap:8px; margin-top:8px; padding-top:8px;
+      border-top:1px solid var(--border);
+    }
+    tbody td:last-child::before{ display:none; }
+    .edit-btn{ font-size:13px; padding:6px 12px; }
+    .del-btn{ font-size:13px; padding:6px 10px; }
+
+    /* pagination */
+    .pagination{ gap:4px; margin-top:14px; }
+    .page-btn{ min-width:34px; height:34px; font-size:13px; }
+    .page-info{ font-size:11px; }
+
+    /* grand total — 1 col */
+    .grand-total{ grid-template-columns:1fr; gap:1px; }
+    .grand-total-item{ padding:14px 16px; }
+    .grand-total-item .gt-value{ font-size:20px; }
+
+    /* month grid — 2 col */
+    .month-grid{ grid-template-columns:1fr 1fr; gap:8px; }
+    .month-item{ padding:12px; }
+    .month-item .mi-total{ font-size:16px; }
+
+    /* modal — full screen bottom sheet */
+    .modal-overlay{ align-items:flex-end; }
+    .modal{
+      max-width:100%; border-radius:16px 16px 0 0;
+      padding:24px 20px 36px;
+      transform:translateY(100%);
+    }
+    .modal-overlay.show .modal{ transform:translateY(0); }
+    .modal h3{ font-size:17px; }
+    .modal .modal-field input{ font-size:16px; padding:12px; }
+    .modal .modal-result{ font-size:26px; }
+    .modal-actions{ gap:10px; }
+    .modal-actions button{ flex:1; padding:13px; font-size:15px; }
+
+    /* toast ขยับขึ้นหน่อยเผื่อ home indicator */
+    .toast{ bottom:44px; font-size:14px; padding:11px 20px; }
+
+    /* sync dot ใหญ่ขึ้นนิด */
+    .sync-dot{ width:8px; height:8px; }
+
+    /* db loading */
+    .db-loading{ font-size:14px; }
+  }
+
+  /* ── Extra small (< 380px) ── */
+  @media (max-width: 380px){
+    body{ padding:12px 10px 100px; }
+    .month-grid{ grid-template-columns:1fr; }
+    .result-amount{ font-size:30px; }
+  }
+
   /* theme toggle */
   .theme-toggle{
     background:none; border:1px solid var(--border); border-radius:20px;
@@ -459,18 +629,8 @@ const KEY_TOKEN = 'fx_bot_token';
 const THEME_KEY_LS = 'fx_theme';
 
 /* ─── Firebase init ─── */
-const firebaseConfig = {
-  apiKey:            "AIzaSyB9TxRrnUh5yafQi1j0GBMYWX7mIS8LT0U",
-  authDomain:        "fir-db-4a083.firebaseapp.com",
-  projectId:         "fir-db-4a083",
-  storageBucket:     "fir-db-4a083.firebasestorage.app",
-  messagingSenderId: "703897619403",
-  appId:             "1:703897619403:web:8971217739755539dbc44e",
-  measurementId:     "G-366N7SYX17"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 const COLLECTION = 'fx_records';
+// db และ helpers โหลดจาก firebase-init-module ผ่าน window._*
 
 /* ─── Sync dot ─── */
 function setSyncDot(state){ // 'syncing' | 'ok' | 'error' | ''
@@ -485,8 +645,9 @@ async function loadHistory(){
   if(_histCache !== null) return _histCache;
   try{
     setSyncDot('syncing');
-    const snap = await db.collection(COLLECTION).orderBy('date','desc').get();
-    _histCache = snap.docs.map(d=>({ id: d.data().id, ...d.data() }));
+    const q    = window._query(window._col(COLLECTION), window._orderBy('date','desc'));
+    const snap = await window._getDocs(q);
+    _histCache = snap.docs.map(d => d.data());
     setSyncDot('ok');
     return _histCache;
   }catch(e){
@@ -497,11 +658,9 @@ async function loadHistory(){
 }
 
 async function saveRecord(rec){
-  // เพิ่มหรืออัปเดต 1 record โดยใช้ id เป็น document key
   try{
     setSyncDot('syncing');
-    await db.collection(COLLECTION).doc(String(rec.id)).set(rec);
-    // อัปเดต cache
+    await window._setDoc(window._doc(COLLECTION, String(rec.id)), rec);
     if(_histCache !== null){
       const idx = _histCache.findIndex(r=>r.id===rec.id);
       if(idx>=0) _histCache[idx]=rec; else _histCache.push(rec);
@@ -517,7 +676,7 @@ async function saveRecord(rec){
 async function deleteRecord_db(id){
   try{
     setSyncDot('syncing');
-    await db.collection(COLLECTION).doc(String(id)).delete();
+    await window._deleteDoc(window._doc(COLLECTION, String(id)));
     if(_histCache !== null) _histCache = _histCache.filter(r=>r.id!==id);
     setSyncDot('ok');
   }catch(e){
@@ -530,9 +689,9 @@ async function deleteRecord_db(id){
 async function clearAllRecords_db(){
   try{
     setSyncDot('syncing');
-    const snap = await db.collection(COLLECTION).get();
-    const batch = db.batch();
-    snap.docs.forEach(d=>batch.delete(d.ref));
+    const snap  = await window._getDocs(window._col(COLLECTION));
+    const batch = window._writeBatch(window._db);
+    snap.docs.forEach(d => batch.delete(d.ref));
     await batch.commit();
     _histCache = [];
     setSyncDot('ok');
@@ -802,11 +961,11 @@ function renderHistory(hist){
     </tr></thead>
     <tbody>${pageRows.map(r=>`
       <tr>
-        <td>${r.date}</td>
-        <td class="num">${fmt(r.usd,2)}</td>
-        <td class="num">${fmt(r.rate,4)}${r.rateDate && r.rateDate!==r.date ? `<span title="ใช้อัตราวันที่ ${r.rateDate}" style="color:var(--stamp);font-size:10px;margin-left:2px">*</span>` : ''}</td>
-        <td class="num">${fmt(r.thb,2)}</td>
-        <td class="note-cell">${r.note?escHtml(r.note):'—'}</td>
+        <td data-label="วันที่">${r.date}</td>
+        <td class="num" data-label="USD">${fmt(r.usd,2)}</td>
+        <td class="num" data-label="อัตราขาย">${fmt(r.rate,4)}${r.rateDate && r.rateDate!==r.date ? `<span title="ใช้อัตราวันที่ ${r.rateDate}" style="color:var(--muted);font-size:10px;margin-left:2px">*</span>` : ''}</td>
+        <td class="num" data-label="THB">${fmt(r.thb,2)}</td>
+        <td class="note-cell" data-label="หมายเหตุ">${r.note?escHtml(r.note):'—'}</td>
         <td style="white-space:nowrap;">
           <button class="edit-btn" title="แก้ไข USD" onclick="openEditModal(${r.id})">แก้ไข</button><button class="del-btn" title="ลบรายการ" onclick="delRecord(${r.id})">✕</button>
         </td>
@@ -1033,15 +1192,31 @@ function toggleTheme(){
     document.getElementById('token-saved-label').classList.add('show'); }
   document.getElementById('calc-date').value=todayStr();
 
-  // โหลดข้อมูลจาก Firestore
+  // แสดง loading
   document.getElementById('history-wrap').innerHTML =
     '<div class="db-loading"><span class="spin"></span> กำลังโหลดข้อมูลจาก Firebase...</div>';
   document.getElementById('summary-wrap').innerHTML =
     '<div class="db-loading"><span class="spin"></span></div>';
 
-  refreshAll().then(()=>{
-    if(saved) onDateChange();
-  });
+  // รอ Firebase module โหลดเสร็จก่อน (ESM async)
+  function startApp(){
+    refreshAll().then(()=>{
+      if(saved) onDateChange();
+    });
+  }
+  if(window._fbReady){
+    startApp();
+  } else {
+    window.addEventListener('firebase-ready', startApp, { once: true });
+    // timeout fallback 8s
+    setTimeout(()=>{
+      if(!window._fbReady){
+        setSyncDot('error');
+        document.getElementById('history-wrap').innerHTML =
+          '<div class="empty-state">เชื่อมต่อ Firebase ไม่ได้ — กรุณา reload</div>';
+      }
+    }, 8000);
+  }
 })();
 </script>
 </body>
