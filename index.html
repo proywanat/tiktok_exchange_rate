@@ -250,12 +250,18 @@ window.dispatchEvent(new Event('firebase-ready'));
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  /* toast */
+  /* toast — hardcode สีเพื่อให้อ่านได้ทั้ง light/dark */
   .toast{
     position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(8px);
-    background:var(--text); color:#fff; padding:9px 18px; border-radius:20px;
-    font-size:13px; opacity:0; pointer-events:none;
-    transition:opacity 0.2s ease, transform 0.2s ease; z-index:50;
+    background:#1A1A1A; color:#F5F5F5;
+    padding:10px 20px; border-radius:20px;
+    font-size:13px; font-weight:500; letter-spacing:0.1px;
+    opacity:0; pointer-events:none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    transition:opacity 0.2s ease, transform 0.2s ease;
+    z-index:200;
+    /* ป้องกัน transition สีจาก global * rule */
+    transition: background-color 0s, border-color 0s, color 0s, opacity 0.2s ease, transform 0.2s ease;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
