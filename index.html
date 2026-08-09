@@ -348,6 +348,18 @@ window.dispatchEvent(new Event('firebase-ready'));
   footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
   hr{ border:none; border-top:1px solid var(--border); margin:0; }
 
+  /* date input — ป้องกัน overflow บน iOS */
+  input[type="date"]{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    min-width: 0;
+    display: block;
+  }
+  input[type="date"]::-webkit-date-and-time-value{
+    text-align: left;
+  }
+
   /* ── Responsive: iPhone 14 Plus (430px) และมือถือทั่วไป ── */
   @media (max-width: 600px){
 
@@ -382,6 +394,18 @@ window.dispatchEvent(new Event('firebase-ready'));
       padding:12px 11px;
     }
     input[type="text"]{ font-size:16px; }
+
+    /* date input — บน iOS Safari จะ overflow ถ้าไม่ lock ไว้ */
+    input[type="date"]{
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      padding: 12px 11px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
 
     /* result row — stack amount + ปุ่ม */
     .result-row{
