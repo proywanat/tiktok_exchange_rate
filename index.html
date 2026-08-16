@@ -553,7 +553,7 @@ window.dispatchEvent(new Event('firebase-ready'));
   .ts-val.high{ color:var(--red); }
 
   /* ── ตารางขั้นบันได ── */
-  .bracket-table-wrap{ overflow-x:auto; padding:0 20px 16px; }
+  .bracket-table-wrap{ padding:0 20px 16px; }
   .bracket-tbl{ width:100%; border-collapse:collapse; font-size:12px; }
   .bracket-tbl th{
     text-align:right; font-family:'Sarabun',sans-serif; font-size:11px; font-weight:700;
@@ -572,6 +572,52 @@ window.dispatchEvent(new Event('firebase-ready'));
   .rate-low{ color:var(--green); }
   .rate-mid{ color:var(--orange); }
   .rate-high{ color:var(--red); }
+
+  /* ── bracket card layout (mobile) ── */
+  .bracket-cards{ display:none; flex-direction:column; gap:6px; }
+  .bracket-card{
+    border:1px solid var(--border); border-radius:8px;
+    padding:10px 14px; background:var(--surface);
+    display:grid; grid-template-columns:1fr auto; gap:2px 12px; align-items:center;
+  }
+  .bracket-card.is-active{
+    border-color:var(--text); background:var(--bg);
+  }
+  .bracket-card.is-peak{
+    border-color:var(--orange); background:var(--bg);
+  }
+  .bracket-card.is-inactive{ opacity:0.45; }
+  .bc-range{
+    font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600;
+    color:var(--text); grid-column:1; grid-row:1;
+  }
+  .bc-rate{
+    font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:700;
+    grid-column:2; grid-row:1 / 3; text-align:right; align-self:center;
+  }
+  .bc-detail{
+    font-size:11px; color:var(--muted); grid-column:1; grid-row:2;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .bc-tax{
+    font-size:12px; font-family:'IBM Plex Mono',monospace; font-weight:600;
+    color:var(--text); grid-column:1 / 3; grid-row:3;
+    border-top:1px solid var(--border); padding-top:6px; margin-top:4px;
+    display:flex; justify-content:space-between;
+  }
+  .bc-tax-label{ color:var(--muted); font-weight:400; }
+  .bracket-total-card{
+    border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; background:var(--surface);
+    display:flex; justify-content:space-between; align-items:center;
+    border-top-width:2px;
+  }
+  .bracket-total-card .bt-label{ font-family:'Sarabun',sans-serif; font-size:13px; font-weight:700; }
+  .bracket-total-card .bt-val{ font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:700; }
+  @media(max-width:600px){
+    .bracket-tbl-wrap-inner{ display:none; }
+    .bracket-cards{ display:flex; }
+  }
 
   /* ── กำหนดยื่น ── */
   .deadline-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 20px 16px; }
@@ -1000,6 +1046,7 @@ window.dispatchEvent(new Event('firebase-ready'));
           </div>
         </div>
         <div class="bracket-table-wrap">
+          <div class="bracket-tbl-wrap-inner">
           <table class="bracket-tbl" id="bracket-tbl">
             <thead><tr>
               <th>ช่วงเงินได้สุทธิ</th>
@@ -1009,6 +1056,8 @@ window.dispatchEvent(new Event('firebase-ready'));
             </tr></thead>
             <tbody id="bracket-tbody"></tbody>
           </table>
+          </div><!-- /bracket-tbl-wrap-inner -->
+          <div class="bracket-cards" id="bracket-cards"></div>
         </div>
 
         <!-- กำหนดยื่น -->
@@ -1035,7 +1084,7 @@ window.dispatchEvent(new Event('firebase-ready'));
         </div>
 
         <div class="tax-disclaimer">
-          ⚠️ ตัวเลขนี้เป็นเพียงการประมาณการเบื้องต้นเท่านั้น · ใช้อัตราภาษีเงินได้บุคคลธรรมดาแบบขั้นบันได พ.ร.บ. ปัจจุบัน · หักค่าใช้จ่าย 60% (สูงสุด 300,000 บาท) และลดหย่อนส่วนตัว 60,000 บาท · ควรปรึกษานักบัญชีเพื่อความถูกต้อง
+          ⚠️ ตัวเลขนี้เป็นเพียงการประมาณการเบื้องต้นเท่านั้น · ใช้อัตราภาษีเงินได้บุคคลธรรมดาแบบขั้นบันได · หักค่าใช้จ่าย 60% (สูงสุด 300,000 บาท) · ลดหย่อนส่วนตัว ภ.ง.ด.94 = 30,000 บาท / ภ.ง.ด.90 = 60,000 บาท · ควรปรึกษานักบัญชีเพื่อความถูกต้อง
         </div>
       </div>
     </section>
@@ -1864,10 +1913,12 @@ async function calcTaxSummary(){
   const grossHalf = tiktokHalf + donateH1 + otherH1;
 
   // ─ คำนวณสุทธิ+ภาษี ─
+  // ภ.ง.ด.90 (ทั้งปี): ลดหย่อนส่วนตัว 60,000
+  // ภ.ง.ด.94 (ครึ่งปีแรก): ลดหย่อนส่วนตัว 30,000 ตามกฎหมาย
   const expFull = Math.min(grossFull*0.60,300000);
   const expHalf = Math.min(grossHalf*0.60,300000);
   const netFull = Math.max(0, grossFull - expFull - 60000);
-  const netHalf = Math.max(0, grossHalf - expHalf - 60000);
+  const netHalf = Math.max(0, grossHalf - expHalf - 30000);
   const taxFull = calcProgressiveTax(netFull);
   const taxHalf = calcProgressiveTax(netHalf);
 
@@ -1899,10 +1950,11 @@ async function calcTaxSummary(){
     const eff = gross>0?(tax/gross*100):0;
     let topRate=0; for(const b of TAX_BRACKETS){if(net>b.min)topRate=b.rate;}
     const taxClass = tax>200000?'high':tax>50000?'amt':'';
+    const personalDeduct = isHalf ? 30000 : 60000;
     return `
       <div class="tax-step"><span class="ts-label">รายได้รวม</span><span class="ts-val">฿${fmt(gross,2)}</span></div>
       <div class="tax-step"><span class="ts-label">หักค่าใช้จ่าย 60%<br><small style="font-size:10px;color:var(--muted)">(สูงสุด 300,000)</small></span><span class="ts-val deduct">-฿${fmt(exp,2)}</span></div>
-      <div class="tax-step"><span class="ts-label">ลดหย่อนส่วนตัว</span><span class="ts-val deduct">-฿60,000.00</span></div>
+      <div class="tax-step"><span class="ts-label">ลดหย่อนส่วนตัว${isHalf?' <small style="font-size:10px;color:var(--muted)">(ครึ่งปี)</small>':''}</span><span class="ts-val deduct">-฿${fmt(personalDeduct,2)}</span></div>
       <div class="tax-step divider"><span class="ts-label">เงินได้สุทธิ</span><span class="ts-val">฿${fmt(net,2)}</span></div>
       <div class="tax-step"><span class="ts-label">อัตราขั้นสูงสุด</span><span class="ts-val">${(topRate*100).toFixed(0)}%</span></div>
       <div class="tax-step result divider"><span class="ts-label">ภาษีที่ต้องชำระ</span><span class="ts-val ${taxClass}" style="font-size:17px;">฿${fmt(tax,2)}</span></div>
@@ -1916,8 +1968,8 @@ async function calcTaxSummary(){
   document.getElementById('net-income-label').textContent = grossFull>0 ? '฿'+fmt(netFull,2) : '';
 
   let bracketRows = '';
+  let bracketCards = '';
   let totalTax = 0;
-  const thaiMonthsB = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   for(const b of TAX_BRACKETS){
     const taxable = netFull > b.min ? Math.min(netFull, b.max) - b.min : 0;
     const bTax    = taxable * b.rate;
@@ -1928,19 +1980,44 @@ async function calcTaxSummary(){
                    : b.rate<=0.10 ? `<span class="rate-low">${(b.rate*100).toFixed(0)}%</span>`
                    : b.rate<=0.20 ? `<span class="rate-mid">${(b.rate*100).toFixed(0)}%</span>`
                    :                `<span class="rate-high">${(b.rate*100).toFixed(0)}%</span>`;
+    const rateNum  = b.rate===0 ? '<span class="rate-zero">ยกเว้น</span>'
+                   : b.rate<=0.10 ? `<span class="rate-low">${(b.rate*100).toFixed(0)}%</span>`
+                   : b.rate<=0.20 ? `<span class="rate-mid">${(b.rate*100).toFixed(0)}%</span>`
+                   :                `<span class="rate-high">${(b.rate*100).toFixed(0)}%</span>`;
     const maxStr   = b.max===Infinity ? 'ขึ้นไป' : `– ${fmt(b.max,0)}`;
+    const rangeLabel = `${fmt(b.min,0)} ${maxStr}`;
+    // ─ table row ─
     bracketRows += `<tr class="${isPeak?'active-bracket':isActive?'':'inactive'}">
-      <td>${fmt(b.min,0)} ${maxStr}</td>
+      <td>${rangeLabel}</td>
       <td>${taxable>0?'฿'+fmt(taxable,2):'<span style="color:var(--border)">—</span>'}</td>
       <td>${rateStr}</td>
       <td>${bTax>0?'฿'+fmt(bTax,2):'<span style="color:var(--border)">—</span>'}</td>
     </tr>`;
+    // ─ card row (mobile) ─
+    const cardClass = isPeak ? 'is-peak' : isActive ? 'is-active' : 'is-inactive';
+    const taxDetail = taxable > 0
+      ? `ส่วนที่คิด ฿${fmt(taxable,2)}`
+      : `ไม่ถึงขั้นนี้`;
+    const taxLine = bTax > 0
+      ? `<div class="bc-tax"><span class="bc-tax-label">ภาษีในขั้นนี้</span><span>฿${fmt(bTax,2)}</span></div>`
+      : '';
+    bracketCards += `<div class="bracket-card ${cardClass}">
+      <div class="bc-range">${rangeLabel}</div>
+      <div class="bc-rate">${rateNum}</div>
+      <div class="bc-detail">${taxDetail}</div>
+      ${taxLine}
+    </div>`;
   }
   bracketRows += `<tr class="total-row">
     <td colspan="3">รวมภาษีทั้งหมด</td>
     <td>฿${fmt(totalTax,2)}</td>
   </tr>`;
+  bracketCards += `<div class="bracket-total-card">
+    <span class="bt-label">รวมภาษีทั้งหมด</span>
+    <span class="bt-val">฿${fmt(totalTax,2)}</span>
+  </div>`;
   document.getElementById('bracket-tbody').innerHTML = bracketRows;
+  document.getElementById('bracket-cards').innerHTML = bracketCards;
 
   // ─ deadlines ─
   document.getElementById('deadline-94').textContent = `ภายใน 30 ก.ย. ${year}`;
