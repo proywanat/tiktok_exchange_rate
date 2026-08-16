@@ -49,6 +49,7 @@ window.dispatchEvent(new Event('firebase-ready'));
     --muted:#888888;
     --green:#1A7A4A;
     --red:#C0392B;
+    --orange:#D97706;
     --radius:8px;
     color-scheme: light;
   }
@@ -354,6 +355,230 @@ window.dispatchEvent(new Event('firebase-ready'));
   footer{ text-align:center; font-size:11px; color:var(--muted); margin-top:32px; }
   hr{ border:none; border-top:1px solid var(--border); margin:0; }
 
+  /* ── Tab Navigation ── */
+  .nav-tabs{
+    display:flex; gap:4px; margin-bottom:20px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:4px;
+  }
+  .nav-tab{
+    flex:1; text-align:center; padding:9px 12px;
+    font-family:'Sarabun',sans-serif; font-size:14px; font-weight:600;
+    color:var(--muted); background:none; border:none; border-radius:6px;
+    cursor:pointer; transition:all 0.15s ease;
+  }
+  .nav-tab:hover{ color:var(--text); background:var(--bg); }
+  .nav-tab.active{ background:var(--text); color:var(--surface); }
+  [data-theme="dark"] .nav-tab.active{ background:var(--surface); color:var(--text); }
+
+  .page{ display:none; }
+  .page.active{ display:block; }
+
+  /* ── Tax page ── */
+  .tax-year-select{
+    display:flex; gap:10px; align-items:center; margin-bottom:20px; flex-wrap:wrap;
+  }
+  .tax-year-select label{ font-size:12px; color:var(--muted); font-weight:600; }
+  .tax-year-select select{ width:auto; font-size:14px; padding:8px 12px; }
+
+  /* income source cards */
+  .income-sources{ display:flex; flex-direction:column; gap:12px; }
+  .income-source{
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px 20px; background:var(--surface);
+  }
+  .income-source .src-header{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:14px; flex-wrap:wrap; gap:8px;
+  }
+  .income-source .src-title{
+    font-size:14px; font-weight:600; color:var(--text);
+    display:flex; align-items:center; gap:8px;
+  }
+  .income-source .src-icon{
+    width:28px; height:28px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+  }
+  .src-icon.tiktok{ background:#111; }
+  .src-icon.donate{ background:#FF6B6B22; }
+  .src-icon.other{ background:#8B5CF622; }
+  .income-source .src-total{
+    font-family:'IBM Plex Mono',monospace; font-size:18px;
+    font-weight:500; color:var(--green);
+  }
+
+  /* TikTok auto-pulled rows */
+  .tiktok-months{ margin-top:8px; }
+  .tiktok-month-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 0; border-bottom:1px solid var(--border); font-size:13px;
+  }
+  .tiktok-month-row:last-child{ border-bottom:none; }
+  .tiktok-month-row .tm-label{ font-family:'Sarabun',sans-serif; color:var(--muted); }
+  .tiktok-month-row .tm-val{ font-family:'IBM Plex Mono',monospace; color:var(--text); font-weight:500; }
+
+  /* manual income rows */
+  .income-rows{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .income-row{ display:grid; grid-template-columns:1fr 140px auto; gap:8px; align-items:center; }
+  .income-row input{ font-size:14px; padding:8px 10px; }
+  .income-row .del-row{ background:none; border:1px solid var(--border); border-radius:4px; color:var(--muted); cursor:pointer; font-size:12px; padding:7px 10px; }
+  .income-row .del-row:hover{ border-color:var(--red); color:var(--red); }
+  .add-row-btn{
+    margin-top:10px; font-size:13px; color:var(--muted);
+    background:none; border:1px dashed var(--border); border-radius:6px;
+    padding:8px; width:100%; cursor:pointer; font-family:'Sarabun',sans-serif;
+  }
+  .add-row-btn:hover{ border-color:var(--text); color:var(--text); }
+
+  /* tax summary */
+  .tax-summary{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); overflow:hidden;
+  }
+  .tax-summary-header{
+    padding:16px 20px; border-bottom:1px solid var(--border);
+    font-size:14px; font-weight:600;
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+  }
+  .tax-total-income{
+    font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:500; color:var(--text);
+  }
+  .tax-rows{ padding:0 20px; }
+  .tax-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0; border-bottom:1px solid var(--border); font-size:14px;
+  }
+  .tax-row:last-child{ border-bottom:none; }
+  .tax-row .tr-label{ color:var(--muted); }
+  .tax-row .tr-val{ font-family:'IBM Plex Mono',monospace; font-weight:500; color:var(--text); }
+  .tax-row .tr-val.deduct{ color:var(--green); }
+  .tax-row .tr-val.tax-amt{ color:var(--orange); font-size:16px; }
+  .tax-row .tr-val.tax-high{ color:var(--red); }
+
+  .tax-bracket-bar{
+    height:6px; border-radius:3px; background:var(--border); margin:14px 20px;
+    overflow:hidden;
+  }
+  .tax-bracket-fill{
+    height:100%; border-radius:3px;
+    background:linear-gradient(90deg, var(--green), var(--orange), var(--red));
+    transition:width 0.5s ease;
+  }
+
+  .tax-half-year{
+    margin:0 20px 16px; padding:14px 16px;
+    background:var(--bg); border-radius:6px; border:1px solid var(--border);
+  }
+  .tax-half-year .thy-label{
+    font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;
+  }
+  .tax-half-year .thy-val{
+    font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:500; color:var(--orange);
+  }
+  .tax-half-year .thy-note{ font-size:11px; color:var(--muted); margin-top:3px; }
+
+  .tax-disclaimer{
+    margin:0 20px 20px; font-size:11px; color:var(--muted);
+    line-height:1.6; padding:10px 14px; background:var(--bg);
+    border-radius:6px; border-left:3px solid var(--border);
+  }
+
+  /* ── ตารางรายเดือน TikTok (H1/H2) ── */
+  .tiktok-month-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  .tiktok-month-table td{
+    padding:7px 0; border-bottom:1px solid var(--border); vertical-align:middle;
+  }
+  .tiktok-month-table tr:last-child td{ border-bottom:none; }
+  .tiktok-month-table .tm-label{ font-family:'Sarabun',sans-serif; color:var(--muted); width:72px; }
+  .tiktok-month-table .tm-bar-cell{ padding:7px 8px; }
+  .tm-bar-wrap{ display:flex; align-items:center; gap:7px; }
+  .tm-bar{ flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; min-width:30px; }
+  .tm-bar-fill{ height:100%; border-radius:3px; transition:width 0.5s ease; }
+  .tiktok-month-table .tm-val{ font-family:'IBM Plex Mono',monospace; color:var(--text); font-weight:500; text-align:right; white-space:nowrap; }
+  .half-badge{
+    display:inline-block; font-size:10px; font-weight:700; padding:1px 5px;
+    border-radius:4px; margin-left:5px; vertical-align:middle; letter-spacing:0.3px;
+  }
+  .half-badge.h1{ background:#1D4ED811; color:#1D4ED8; }
+  .half-badge.h2{ background:#D9770611; color:#D97706; }
+  [data-theme="dark"] .half-badge.h1{ background:#1D4ED822; color:#60A5FA; }
+  [data-theme="dark"] .half-badge.h2{ background:#D9770622; color:#FBB040; }
+  .tiktok-month-table .tm-subtotal td{
+    font-weight:700; font-size:12px; padding:9px 0;
+    border-top:2px solid var(--border); border-bottom:none;
+  }
+
+  /* ── คู่ขนาน ครึ่งปี vs ทั้งปี ── */
+  .tax-panels{
+    display:grid; grid-template-columns:1fr 1fr; gap:0;
+    border-top:1px solid var(--border);
+  }
+  .tax-panel{ padding:16px 20px; }
+  .tax-panel:first-child{ border-right:1px solid var(--border); }
+  .tax-panel-label{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+    color:var(--muted); margin-bottom:12px; display:flex; align-items:center; gap:6px;
+  }
+  .panel-badge{
+    font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px;
+    text-transform:none; letter-spacing:0;
+  }
+  .panel-badge.h1{ background:#1D4ED811; color:#1D4ED8; border:1px solid #1D4ED822; }
+  .panel-badge.h2{ background:#D9770611; color:#D97706; border:1px solid #D9770622; }
+  [data-theme="dark"] .panel-badge.h1{ background:#1D4ED822; color:#60A5FA; }
+  [data-theme="dark"] .panel-badge.h2{ background:#D9770622; color:#FBB040; }
+  .tax-step{ display:flex; justify-content:space-between; font-size:13px; padding:5px 0; gap:8px; }
+  .tax-step .ts-label{ color:var(--muted); flex:1; }
+  .tax-step .ts-val{ font-family:'IBM Plex Mono',monospace; font-weight:500; white-space:nowrap; }
+  .ts-val.deduct{ color:var(--green); }
+  .tax-step.divider{ border-top:1px solid var(--border); margin-top:4px; padding-top:8px; }
+  .tax-step.result .ts-label{ font-weight:600; color:var(--text); }
+  .tax-step.result .ts-val{ font-size:16px; }
+  .ts-val.amt{ color:var(--orange); }
+  .ts-val.high{ color:var(--red); }
+
+  /* ── ตารางขั้นบันได ── */
+  .bracket-table-wrap{ overflow-x:auto; padding:0 20px 16px; }
+  .bracket-tbl{ width:100%; border-collapse:collapse; font-size:12px; }
+  .bracket-tbl th{
+    text-align:right; font-family:'Sarabun',sans-serif; font-size:11px; font-weight:700;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;
+    border-bottom:1px solid var(--border); padding:7px 8px;
+  }
+  .bracket-tbl th:first-child{ text-align:left; }
+  .bracket-tbl td{ padding:8px 8px; border-bottom:1px solid var(--border); text-align:right; font-family:'IBM Plex Mono',monospace; }
+  .bracket-tbl td:first-child{ text-align:left; font-family:'Sarabun',sans-serif; font-size:13px; }
+  .bracket-tbl tr:last-child td{ border-bottom:none; }
+  .bracket-tbl .active-bracket td{ background:var(--bg); font-weight:700; }
+  .bracket-tbl .active-bracket td:first-child{ color:var(--text); }
+  .bracket-tbl .inactive td{ color:var(--muted); }
+  .bracket-tbl .total-row td{ border-top:2px solid var(--border); font-weight:700; }
+  .rate-zero{ color:var(--muted); }
+  .rate-low{ color:var(--green); }
+  .rate-mid{ color:var(--orange); }
+  .rate-high{ color:var(--red); }
+
+  /* ── กำหนดยื่น ── */
+  .deadline-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 20px 16px; }
+  .deadline-item{
+    border:1px solid var(--border); border-radius:6px; padding:12px 14px;
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .deadline-dot{ width:8px; height:8px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .dot-blue{ background:#1D4ED8; }
+  .dot-orange{ background:var(--orange); }
+  [data-theme="dark"] .dot-blue{ background:#60A5FA; }
+  .deadline-form{ font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+  .deadline-desc{ font-size:11px; color:var(--muted); line-height:1.5; }
+  .deadline-due{ font-size:11px; font-weight:600; color:var(--orange); margin-top:4px; font-family:'IBM Plex Mono',monospace; }
+
+  @media(max-width:600px){
+    .tax-panels{ grid-template-columns:1fr; }
+    .tax-panel:first-child{ border-right:none; border-bottom:1px solid var(--border); }
+    .deadline-grid{ grid-template-columns:1fr; }
+    .bracket-table-wrap{ padding:0 14px 14px; }
+  }
+
   /* date input — ป้องกัน overflow บน iOS */
   input[type="date"]{
     -webkit-appearance: none;
@@ -508,6 +733,17 @@ window.dispatchEvent(new Event('firebase-ready'));
 
     /* db loading */
     .db-loading{ font-size:14px; }
+
+    /* nav tabs mobile */
+    .nav-tab{ font-size:13px; padding:8px 6px; }
+
+    /* tax income row mobile */
+    .income-row{ grid-template-columns:1fr; }
+    .income-row input:nth-child(2){ }
+    .tax-summary-header{ flex-direction:column; align-items:flex-start; }
+    .tax-half-year, .tax-disclaimer{ margin:0 0 12px; }
+    .tax-rows{ padding:0 14px; }
+    .tax-bracket-bar{ margin:12px 14px; }
   }
 
   /* ── Extra small (< 380px) ── */
@@ -543,8 +779,8 @@ window.dispatchEvent(new Event('firebase-ready'));
 
   <header>
     <div>
-      <h1>USD → THB</h1>
-      <div class="sub">อัตราขายถัวเฉลี่ย · ธนาคารแห่งประเทศไทย</div>
+      <h1 id="page-title">USD → THB</h1>
+      <div class="sub" id="page-sub">อัตราขายถัวเฉลี่ย · ธนาคารแห่งประเทศไทย</div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <div class="badge" id="history-badge">ยังไม่มีรายการ<span class="sync-dot" id="sync-dot" title="สถานะการซิงค์"></span></div>
@@ -554,6 +790,15 @@ window.dispatchEvent(new Event('firebase-ready'));
       </button>
     </div>
   </header>
+
+  <!-- Nav Tabs -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('exchange')" id="tab-exchange">💱 แลกเปลี่ยน</button>
+    <button class="nav-tab" onclick="switchPage('tax')" id="tab-tax">🧾 ภาษี</button>
+  </nav>
+
+  <!-- PAGE: EXCHANGE -->
+  <div class="page active" id="page-exchange">
 
   <!-- CALC -->
   <section class="card">
@@ -623,6 +868,152 @@ window.dispatchEvent(new Event('firebase-ready'));
       <div class="empty-state">ยังไม่มีข้อมูล</div>
     </div>
   </section>
+
+  </div><!-- /page-exchange -->
+
+  <!-- PAGE: TAX -->
+  <div class="page" id="page-tax">
+
+    <!-- เลือกปีภาษี -->
+    <section class="card">
+      <h2>ภาษีเงินได้บุคคลธรรมดา</h2>
+      <div class="tax-year-select">
+        <label>ปีภาษี (พ.ศ.)</label>
+        <select id="tax-year" onchange="renderTaxPage()"></select>
+        <span style="font-size:12px;color:var(--muted);">คำนวณจากรายได้ทั้งปีและครึ่งปีแรก</span>
+      </div>
+
+      <!-- แหล่งรายได้ -->
+      <div class="income-sources">
+
+        <!-- TikTok (ดึงจาก Firestore อัตโนมัติ) -->
+        <div class="income-source">
+          <div class="src-header">
+            <div class="src-title">
+              <div class="src-icon tiktok">🎵</div>
+              รายได้จาก TikTok (USD→THB)
+            </div>
+            <div class="src-total" id="tiktok-total">฿0.00</div>
+          </div>
+          <div class="tiktok-months" id="tiktok-months">
+            <div class="empty-state" style="padding:16px 0; text-align:left; font-size:13px;">กำลังดึงข้อมูล...</div>
+          </div>
+        </div>
+
+        <!-- Donate -->
+        <div class="income-source">
+          <div class="src-header">
+            <div class="src-title">
+              <div class="src-icon donate">💝</div>
+              รายได้จาก Donate
+            </div>
+            <div class="src-total" id="donate-total">฿0.00</div>
+          </div>
+          <div class="income-rows" id="donate-rows"></div>
+          <button class="add-row-btn" onclick="addIncomeRow('donate')">+ เพิ่มรายการ Donate</button>
+        </div>
+
+        <!-- อื่นๆ -->
+        <div class="income-source">
+          <div class="src-header">
+            <div class="src-title">
+              <div class="src-icon other">✨</div>
+              รายได้พิเศษอื่นๆ
+            </div>
+            <div class="src-total" id="other-total">฿0.00</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">เช่น โบนัสสังกัด, งาน Event, สปอนเซอร์</div>
+          <div class="income-rows" id="other-rows"></div>
+          <button class="add-row-btn" onclick="addIncomeRow('other')">+ เพิ่มรายได้พิเศษ</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- สรุปและคำนวณภาษี -->
+    <section class="card" style="padding:0; overflow:hidden;">
+      <div class="tax-summary">
+
+        <!-- header: รายได้รวม + effective rate bar -->
+        <div class="tax-summary-header">
+          <span>สรุปและประมาณการภาษี</span>
+          <div class="tax-total-income" id="tax-total-display">฿0.00</div>
+        </div>
+
+        <!-- breakdown รายการ (เดิม) -->
+        <div class="tax-rows" id="tax-rows">
+          <div class="empty-state" style="padding:20px 0;">กรอกรายได้เพื่อคำนวณ</div>
+        </div>
+
+        <!-- effective rate bar -->
+        <div class="tax-bracket-bar"><div class="tax-bracket-fill" id="tax-bar" style="width:0%"></div></div>
+
+        <!-- คู่ขนาน ครึ่งปี vs ทั้งปี -->
+        <div class="tax-panels" id="tax-panels">
+          <div class="tax-panel">
+            <div class="tax-panel-label">
+              ครึ่งปีแรก (ม.ค.–มิ.ย.)
+              <span class="panel-badge h1">ภ.ง.ด.94</span>
+            </div>
+            <div id="tax-steps-half"><div style="font-size:13px;color:var(--muted);">—</div></div>
+          </div>
+          <div class="tax-panel">
+            <div class="tax-panel-label">
+              ทั้งปี (ม.ค.–ธ.ค.)
+              <span class="panel-badge h2">ภ.ง.ด.90</span>
+            </div>
+            <div id="tax-steps-full"><div style="font-size:13px;color:var(--muted);">—</div></div>
+          </div>
+        </div>
+
+        <!-- ตารางขั้นบันได -->
+        <div style="padding:14px 20px 6px; border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--muted);margin-bottom:10px;">
+            ขั้นบันไดภาษี · เงินได้สุทธิ <span id="net-income-label" style="font-family:'IBM Plex Mono',monospace;color:var(--text);"></span>
+          </div>
+        </div>
+        <div class="bracket-table-wrap">
+          <table class="bracket-tbl" id="bracket-tbl">
+            <thead><tr>
+              <th>ช่วงเงินได้สุทธิ</th>
+              <th>ส่วนที่คิดภาษี</th>
+              <th>อัตรา</th>
+              <th>ภาษี</th>
+            </tr></thead>
+            <tbody id="bracket-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- กำหนดยื่น -->
+        <div style="padding:12px 20px 6px; border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--muted);margin-bottom:10px;">กำหนดยื่นภาษี</div>
+        </div>
+        <div class="deadline-grid" id="deadline-grid">
+          <div class="deadline-item">
+            <div class="deadline-dot dot-blue"></div>
+            <div>
+              <div class="deadline-form">ภ.ง.ด.94 (ครึ่งปีแรก)</div>
+              <div class="deadline-desc">ยื่นรายได้ ม.ค.–มิ.ย.<br>ยื่นออนไลน์ e-Filing</div>
+              <div class="deadline-due" id="deadline-94">—</div>
+            </div>
+          </div>
+          <div class="deadline-item">
+            <div class="deadline-dot dot-orange"></div>
+            <div>
+              <div class="deadline-form">ภ.ง.ด.90 (ทั้งปี)</div>
+              <div class="deadline-desc">ยื่นรายได้ทั้งปี ม.ค.–ธ.ค.<br>หักภาษีที่จ่าย ภ.ง.ด.94 แล้วออก</div>
+              <div class="deadline-due" id="deadline-90">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-disclaimer">
+          ⚠️ ตัวเลขนี้เป็นเพียงการประมาณการเบื้องต้นเท่านั้น · ใช้อัตราภาษีเงินได้บุคคลธรรมดาแบบขั้นบันได พ.ร.บ. ปัจจุบัน · หักค่าใช้จ่าย 60% (สูงสุด 300,000 บาท) และลดหย่อนส่วนตัว 60,000 บาท · ควรปรึกษานักบัญชีเพื่อความถูกต้อง
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /page-tax -->
 
   <footer>ข้อมูลซิงค์กับ Firebase Firestore · เข้าถึงได้ทุก platform</footer>
 </div>
@@ -1196,6 +1587,281 @@ async function clearAll(){
     showToast('ล้างข้อมูลทั้งหมดแล้ว');
   }catch(e){}
 }
+
+/* ─── Page Navigation ─── */
+function switchPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('tab-'+page).classList.add('active');
+
+  if(page==='exchange'){
+    document.getElementById('page-title').textContent='USD → THB';
+    document.getElementById('page-sub').textContent='อัตราขายถัวเฉลี่ย · ธนาคารแห่งประเทศไทย';
+  } else {
+    document.getElementById('page-title').textContent='ภาษีเงินได้';
+    document.getElementById('page-sub').textContent='ประมาณการภาษีบุคคลธรรมดา · มาตรา 40(8)';
+    renderTaxPage();
+  }
+}
+
+/* ─── Tax Page ─── */
+const TAX_KEY = 'fx_tax_income'; // localStorage key สำหรับ donate/other rows
+
+const TAX_BRACKETS = [
+  { min:0,       max:150000,  rate:0    },
+  { min:150000,  max:300000,  rate:0.05 },
+  { min:300000,  max:500000,  rate:0.10 },
+  { min:500000,  max:750000,  rate:0.15 },
+  { min:750000,  max:1000000, rate:0.20 },
+  { min:1000000, max:2000000, rate:0.25 },
+  { min:2000000, max:5000000, rate:0.30 },
+  { min:5000000, max:Infinity,rate:0.35 },
+];
+
+function calcProgressiveTax(income){
+  let tax = 0;
+  for(const b of TAX_BRACKETS){
+    if(income <= b.min) break;
+    const taxable = Math.min(income, b.max) - b.min;
+    tax += taxable * b.rate;
+  }
+  return tax;
+}
+
+// หักค่าใช้จ่าย 60% (สูงสุด 300,000) + ลดหย่อนส่วนตัว 60,000
+function calcNetIncome(gross){
+  const expense = Math.min(gross * 0.60, 300000);
+  const personal = 60000;
+  return Math.max(0, gross - expense - personal);
+}
+
+// โหลด/บันทึก donate & other rows ใน localStorage
+function loadTaxRows(type){
+  try{ return JSON.parse(localStorage.getItem(TAX_KEY+'_'+type)) || []; }catch(e){ return []; }
+}
+function saveTaxRows(type, rows){
+  localStorage.setItem(TAX_KEY+'_'+type, JSON.stringify(rows));
+}
+
+function addIncomeRow(type){
+  const year = parseInt(document.getElementById('tax-year').value);
+  const rows = loadTaxRows(type);
+  rows.push({ id: Date.now(), label:'', amount:0, year });
+  saveTaxRows(type, rows);
+  renderIncomeRows(type, year);
+  calcTaxSummary();
+}
+
+function deleteIncomeRow(type, id){
+  const year = parseInt(document.getElementById('tax-year').value);
+  const rows = loadTaxRows(type).filter(r=>r.id!==id);
+  saveTaxRows(type, rows);
+  renderIncomeRows(type, year);
+  calcTaxSummary();
+}
+
+function updateIncomeRow(type, id, field, val){
+  const rows = loadTaxRows(type).map(r=> r.id===id ? {...r, [field]: field==='amount'?parseFloat(val)||0:val} : r);
+  saveTaxRows(type, rows);
+  calcTaxSummary();
+  // อัปเดต total
+  const year = parseInt(document.getElementById('tax-year').value);
+  const total = rows.filter(r=>r.year===year).reduce((s,r)=>s+r.amount,0);
+  document.getElementById(type+'-total').textContent = '฿'+fmt(total,2);
+}
+
+function renderIncomeRows(type, year){
+  const rows = loadTaxRows(type).filter(r=>r.year===year);
+  const wrap = document.getElementById(type+'-rows');
+  if(!wrap) return;
+  wrap.innerHTML = rows.map(r=>`
+    <div class="income-row">
+      <input type="text" value="${escHtml(r.label)}" placeholder="รายละเอียด เช่น โบนัส ม.ค."
+        oninput="updateIncomeRow('${type}',${r.id},'label',this.value)">
+      <input type="number" value="${r.amount||''}" placeholder="จำนวน (THB)" step="0.01" min="0"
+        oninput="updateIncomeRow('${type}',${r.id},'amount',this.value)">
+      <button class="del-row" onclick="deleteIncomeRow('${type}',${r.id})">ลบ</button>
+    </div>`).join('');
+  const total = rows.reduce((s,r)=>s+r.amount,0);
+  document.getElementById(type+'-total').textContent = '฿'+fmt(total,2);
+}
+
+async function renderTikTokMonths(year){
+  const wrap = document.getElementById('tiktok-months');
+  const hist = _histCache || await loadHistory();
+
+  const ceYear = year - 543;
+  const records = hist.filter(r=>r.date && r.date.startsWith(String(ceYear)));
+
+  const byMonth = {};
+  records.forEach(r=>{
+    const m = r.date.slice(0,7);
+    if(!byMonth[m]) byMonth[m]=0;
+    byMonth[m] += r.thb;
+  });
+
+  const months = Object.keys(byMonth).sort();
+  const total  = Object.values(byMonth).reduce((s,v)=>s+v,0);
+  document.getElementById('tiktok-total').textContent = '฿'+fmt(total,2);
+
+  if(!months.length){
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">ไม่มีข้อมูลปี '+(year)+' (พ.ศ.)</div>';
+    return;
+  }
+
+  const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const maxVal = Math.max(...Object.values(byMonth));
+
+  const h1sum = months.filter(m=>parseInt(m.slice(5))<=6).reduce((s,m)=>s+byMonth[m],0);
+  const h2sum = months.filter(m=>parseInt(m.slice(5))>6).reduce((s,m)=>s+byMonth[m],0);
+
+  let rows = months.map(m=>{
+    const mon   = parseInt(m.slice(5));
+    const isH1  = mon <= 6;
+    const pct   = maxVal > 0 ? (byMonth[m]/maxVal*100).toFixed(1) : 0;
+    const color = isH1 ? '#1D4ED8' : 'var(--orange)';
+    return `<tr>
+      <td class="tm-label">${thaiMonths[mon-1]} ${year}<span class="half-badge ${isH1?'h1':'h2'}">${isH1?'H1':'H2'}</span></td>
+      <td class="tm-bar-cell">
+        <div class="tm-bar-wrap">
+          <div class="tm-bar"><div class="tm-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        </div>
+      </td>
+      <td class="tm-val">฿${fmt(byMonth[m],2)}</td>
+    </tr>`;
+  });
+
+  if(h1sum>0) rows.push(`<tr class="tm-subtotal">
+    <td colspan="2" style="color:#1D4ED8;font-size:12px;">รวม H1 (ม.ค.–มิ.ย.)</td>
+    <td class="tm-val" style="color:#1D4ED8;">฿${fmt(h1sum,2)}</td>
+  </tr>`);
+  if(h2sum>0) rows.push(`<tr class="tm-subtotal">
+    <td colspan="2" style="color:var(--orange);font-size:12px;">รวม H2 (ก.ค.–ธ.ค.)</td>
+    <td class="tm-val" style="color:var(--orange);">฿${fmt(h2sum,2)}</td>
+  </tr>`);
+
+  wrap.innerHTML = `<table class="tiktok-month-table"><tbody>${rows.join('')}</tbody></table>`;
+}
+
+function calcTaxSummary(){
+  const year   = parseInt(document.getElementById('tax-year').value);
+  const ceYear = year - 543;
+  const hist   = _histCache || [];
+
+  // ─ รายได้ TikTok ─
+  const tiktokFull = hist.filter(r=>r.date&&r.date.startsWith(String(ceYear))).reduce((s,r)=>s+r.thb,0);
+  const tiktokHalf = hist.filter(r=>r.date&&r.date.startsWith(String(ceYear))&&parseInt(r.date.slice(5,7))<=6).reduce((s,r)=>s+r.thb,0);
+
+  const donateFull = loadTaxRows('donate').filter(r=>r.year===year).reduce((s,r)=>s+r.amount,0);
+  const otherFull  = loadTaxRows('other').filter(r=>r.year===year).reduce((s,r)=>s+r.amount,0);
+
+  const grossFull = tiktokFull + donateFull + otherFull;
+  const grossHalf = tiktokHalf + (donateFull/2) + (otherFull/2);
+
+  // ─ คำนวณสุทธิ+ภาษี ─
+  const expFull = Math.min(grossFull*0.60,300000);
+  const expHalf = Math.min(grossHalf*0.60,300000);
+  const netFull = Math.max(0, grossFull - expFull - 60000);
+  const netHalf = Math.max(0, grossHalf - expHalf - 60000);
+  const taxFull = calcProgressiveTax(netFull);
+  const taxHalf = calcProgressiveTax(netHalf);
+
+  const effectiveRate = grossFull > 0 ? (taxFull/grossFull*100) : 0;
+  const barPct = Math.min(effectiveRate/35*100, 100);
+
+  // ─ header + bar ─
+  document.getElementById('tax-total-display').textContent = '฿'+fmt(grossFull,2);
+  document.getElementById('tax-bar').style.width = barPct+'%';
+
+  // ─ breakdown list (เดิม) ─
+  let curBracket = TAX_BRACKETS[0];
+  for(const b of TAX_BRACKETS){ if(netFull>b.min) curBracket=b; }
+
+  document.getElementById('tax-rows').innerHTML = grossFull===0
+    ? '<div class="empty-state" style="padding:20px 0;">กรอกรายได้เพื่อคำนวณ</div>'
+    : `
+    <div class="tax-row"><span class="tr-label">รายได้รวมทั้งปี (พ.ศ. ${year})</span><span class="tr-val">฿${fmt(grossFull,2)}</span></div>
+    <div class="tax-row"><span class="tr-label">หักค่าใช้จ่าย 60% (สูงสุด 300,000)</span><span class="tr-val deduct">-฿${fmt(expFull,2)}</span></div>
+    <div class="tax-row"><span class="tr-label">หักลดหย่อนส่วนตัว</span><span class="tr-val deduct">-฿60,000.00</span></div>
+    <div class="tax-row"><span class="tr-label">เงินได้สุทธิ</span><span class="tr-val">฿${fmt(netFull,2)}</span></div>
+    <div class="tax-row"><span class="tr-label">อัตราภาษีขั้นสูงสุดที่ใช้</span><span class="tr-val">${(curBracket.rate*100).toFixed(0)}%</span></div>
+    <div class="tax-row"><span class="tr-label">ประมาณการภาษีทั้งปี</span><span class="tr-val ${taxFull>50000?'tax-high':'tax-amt'}">฿${fmt(taxFull,2)}</span></div>
+    <div class="tax-row"><span class="tr-label">Effective Rate</span><span class="tr-val">${effectiveRate.toFixed(2)}%</span></div>`;
+
+  // ─ helper render steps ─
+  function renderSteps(gross, exp, net, tax, isHalf){
+    if(gross===0) return '<div style="font-size:13px;color:var(--muted);padding:4px 0;">ยังไม่มีข้อมูล</div>';
+    const eff = gross>0?(tax/gross*100):0;
+    let topRate=0; for(const b of TAX_BRACKETS){if(net>b.min)topRate=b.rate;}
+    const taxClass = tax>200000?'high':tax>50000?'amt':'';
+    return `
+      <div class="tax-step"><span class="ts-label">รายได้รวม</span><span class="ts-val">฿${fmt(gross,2)}</span></div>
+      <div class="tax-step"><span class="ts-label">หักค่าใช้จ่าย 60%<br><small style="font-size:10px;color:var(--muted)">(สูงสุด 300,000)</small></span><span class="ts-val deduct">-฿${fmt(exp,2)}</span></div>
+      <div class="tax-step"><span class="ts-label">ลดหย่อนส่วนตัว</span><span class="ts-val deduct">-฿60,000.00</span></div>
+      <div class="tax-step divider"><span class="ts-label">เงินได้สุทธิ</span><span class="ts-val">฿${fmt(net,2)}</span></div>
+      <div class="tax-step"><span class="ts-label">อัตราขั้นสูงสุด</span><span class="ts-val">${(topRate*100).toFixed(0)}%</span></div>
+      <div class="tax-step result divider"><span class="ts-label">ภาษีที่ต้องชำระ</span><span class="ts-val ${taxClass}" style="font-size:17px;">฿${fmt(tax,2)}</span></div>
+      <div class="tax-step"><span class="ts-label">Effective Rate</span><span class="ts-val">${eff.toFixed(2)}%</span></div>`;
+  }
+
+  document.getElementById('tax-steps-half').innerHTML = renderSteps(grossHalf, expHalf, netHalf, taxHalf, true);
+  document.getElementById('tax-steps-full').innerHTML = renderSteps(grossFull, expFull, netFull, taxFull, false);
+
+  // ─ bracket table ─
+  document.getElementById('net-income-label').textContent = grossFull>0 ? '฿'+fmt(netFull,2) : '';
+
+  let bracketRows = '';
+  let totalTax = 0;
+  const thaiMonthsB = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  for(const b of TAX_BRACKETS){
+    const taxable = netFull > b.min ? Math.min(netFull, b.max) - b.min : 0;
+    const bTax    = taxable * b.rate;
+    totalTax += bTax;
+    const isActive = taxable > 0;
+    const isPeak   = netFull > b.min && (b.max === Infinity || netFull <= b.max);
+    const rateStr  = b.rate===0 ? '<span class="rate-zero">ยกเว้น</span>'
+                   : b.rate<=0.10 ? `<span class="rate-low">${(b.rate*100).toFixed(0)}%</span>`
+                   : b.rate<=0.20 ? `<span class="rate-mid">${(b.rate*100).toFixed(0)}%</span>`
+                   :                `<span class="rate-high">${(b.rate*100).toFixed(0)}%</span>`;
+    const maxStr   = b.max===Infinity ? 'ขึ้นไป' : `– ${fmt(b.max,0)}`;
+    bracketRows += `<tr class="${isPeak?'active-bracket':isActive?'':'inactive'}">
+      <td>${fmt(b.min,0)} ${maxStr}</td>
+      <td>${taxable>0?'฿'+fmt(taxable,2):'<span style="color:var(--border)">—</span>'}</td>
+      <td>${rateStr}</td>
+      <td>${bTax>0?'฿'+fmt(bTax,2):'<span style="color:var(--border)">—</span>'}</td>
+    </tr>`;
+  }
+  bracketRows += `<tr class="total-row">
+    <td colspan="3">รวมภาษีทั้งหมด</td>
+    <td>฿${fmt(totalTax,2)}</td>
+  </tr>`;
+  document.getElementById('bracket-tbody').innerHTML = bracketRows;
+
+  // ─ deadlines ─
+  document.getElementById('deadline-94').textContent = `ภายใน 30 ก.ย. ${year}`;
+  document.getElementById('deadline-90').textContent = `ภายใน 31 มี.ค. ${year+1}`;
+}
+
+async function renderTaxPage(){
+  const year = parseInt(document.getElementById('tax-year').value);
+  await renderTikTokMonths(year);
+  renderIncomeRows('donate', year);
+  renderIncomeRows('other', year);
+  calcTaxSummary();
+}
+
+// init year dropdown (ปีปัจจุบัน พ.ศ. และย้อนหลัง 3 ปี)
+(function initTaxYears(){
+  const sel = document.getElementById('tax-year');
+  if(!sel) return;
+  const currentBE = new Date().getFullYear() + 543;
+  for(let y=currentBE; y>=currentBE-3; y--){
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    sel.appendChild(opt);
+  }
+})();
 
 /* ─── Theme ─── */
 const THEME_KEY = 'fx_theme';
