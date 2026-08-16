@@ -419,10 +419,25 @@ window.dispatchEvent(new Event('firebase-ready'));
 
   /* manual income rows */
   .income-rows{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
-  .income-row{ display:grid; grid-template-columns:1fr 140px auto; gap:8px; align-items:center; }
+  .income-row{ display:grid; grid-template-columns:1fr 120px 120px 36px; gap:8px; align-items:center; }
   .income-row input{ font-size:14px; padding:8px 10px; }
-  .income-row .del-row{ background:none; border:1px solid var(--border); border-radius:4px; color:var(--muted); cursor:pointer; font-size:12px; padding:7px 10px; }
-  .income-row .del-row:hover{ border-color:var(--red); color:var(--red); }
+  .income-row .del-row{
+    width:36px; height:36px; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    background:none; border:1px solid var(--border); border-radius:4px;
+    color:var(--muted); cursor:pointer; font-size:12px; flex-shrink:0;
+  }
+  .income-row .del-row:hover{ border-color:var(--red); color:var(--red); background:rgba(240,107,107,0.08); }
+  .income-row-label{ font-size:10px; color:var(--muted); font-weight:600; letter-spacing:0.4px; margin-bottom:3px; display:block; }
+  .income-h1-input{ border-color:#1D4ED844 !important; }
+  .income-h1-input:focus{ border-color:#1D4ED8 !important; }
+  .income-h2-input{ border-color:#D9770644 !important; }
+  .income-h2-input:focus{ border-color:#D97706 !important; }
+  @media(max-width:600px){
+    .income-row{ grid-template-columns:1fr auto; grid-template-rows:auto auto auto; }
+    .income-row .income-half-wrap{ grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .income-row .del-row{ grid-column:2; grid-row:1; margin-top:0; }
+  }
   .add-row-btn{
     margin-top:10px; font-size:13px; color:var(--muted);
     background:none; border:1px dashed var(--border); border-radius:6px;
@@ -880,7 +895,7 @@ window.dispatchEvent(new Event('firebase-ready'));
       <div class="tax-year-select">
         <label>ปีภาษี (พ.ศ.)</label>
         <select id="tax-year" onchange="renderTaxPage()"></select>
-        <span style="font-size:12px;color:var(--muted);">คำนวณจากรายได้ทั้งปีและครึ่งปีแรก</span>
+        <span style="font-size:12px;color:var(--muted);">แยกรายได้ H1/H2 เพื่อคำนวณ ภ.ง.ด.94 และ 90</span>
       </div>
 
       <!-- แหล่งรายได้ -->
@@ -909,6 +924,12 @@ window.dispatchEvent(new Event('firebase-ready'));
             </div>
             <div class="src-total" id="donate-total">฿0.00</div>
           </div>
+          <div class="income-rows-header" style="display:grid;grid-template-columns:1fr 120px 120px 36px;gap:8px;margin-bottom:4px;">
+            <span style="font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.4px;">แหล่งที่มา</span>
+            <span style="font-size:10px;color:#1D4ED8;font-weight:700;letter-spacing:0.4px;">H1 ม.ค.–มิ.ย. (฿)</span>
+            <span style="font-size:10px;color:#D97706;font-weight:700;letter-spacing:0.4px;">H2 ก.ค.–ธ.ค. (฿)</span>
+            <span></span>
+          </div>
           <div class="income-rows" id="donate-rows"></div>
           <button class="add-row-btn" onclick="addIncomeRow('donate')">+ เพิ่มรายการ Donate</button>
         </div>
@@ -922,7 +943,13 @@ window.dispatchEvent(new Event('firebase-ready'));
             </div>
             <div class="src-total" id="other-total">฿0.00</div>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">เช่น โบนัสสังกัด, งาน Event, สปอนเซอร์</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">เช่น โบนัสสังกัด, งาน Event, สปอนเซอร์</div>
+          <div class="income-rows-header" style="display:grid;grid-template-columns:1fr 120px 120px 36px;gap:8px;margin-bottom:4px;">
+            <span style="font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.4px;">รายละเอียด</span>
+            <span style="font-size:10px;color:#1D4ED8;font-weight:700;letter-spacing:0.4px;">H1 ม.ค.–มิ.ย. (฿)</span>
+            <span style="font-size:10px;color:#D97706;font-weight:700;letter-spacing:0.4px;">H2 ก.ค.–ธ.ค. (฿)</span>
+            <span></span>
+          </div>
           <div class="income-rows" id="other-rows"></div>
           <button class="add-row-btn" onclick="addIncomeRow('other')">+ เพิ่มรายได้พิเศษ</button>
         </div>
@@ -1636,54 +1663,123 @@ function calcNetIncome(gross){
   return Math.max(0, gross - expense - personal);
 }
 
-// โหลด/บันทึก donate & other rows ใน localStorage
-function loadTaxRows(type){
-  try{ return JSON.parse(localStorage.getItem(TAX_KEY+'_'+type)) || []; }catch(e){ return []; }
-}
-function saveTaxRows(type, rows){
-  localStorage.setItem(TAX_KEY+'_'+type, JSON.stringify(rows));
+// ── Tax rows — Firestore (collection: tax_income) ─────────────────
+// doc id = "<type>_<row.id>"  เช่น "donate_1718000000000"
+let _taxCache = { donate: null, other: null }; // null = ยังไม่เคยโหลด
+
+function _migrateTaxRow(r){
+  if(typeof r.amountH1 === 'undefined'){
+    return { ...r, amountH1: r.amount||0, amountH2: 0 };
+  }
+  return r;
 }
 
-function addIncomeRow(type){
+async function loadTaxRows(type){
+  if(_taxCache[type] !== null) return _taxCache[type];
+  try{
+    setSyncDot('syncing');
+    const snap = await window._getDocs(window._col('tax_income'));
+    const all  = snap.docs.map(d => d.data());
+    _taxCache['donate'] = all.filter(r=>r.type==='donate').map(_migrateTaxRow);
+    _taxCache['other']  = all.filter(r=>r.type==='other').map(_migrateTaxRow);
+    setSyncDot('ok');
+    return _taxCache[type] || [];
+  }catch(e){
+    setSyncDot('error');
+    console.error('loadTaxRows error:', e);
+    // fallback localStorage
+    try{
+      const rows = JSON.parse(localStorage.getItem(TAX_KEY+'_'+type)) || [];
+      return rows.map(_migrateTaxRow);
+    }catch(e2){ return []; }
+  }
+}
+
+async function saveTaxRow(type, row){
+  // อัปเดต cache
+  if(_taxCache[type] !== null){
+    const idx = _taxCache[type].findIndex(r=>r.id===row.id);
+    if(idx>=0) _taxCache[type][idx] = { ...row, type };
+    else _taxCache[type].push({ ...row, type });
+  }
+  // บันทึก Firestore
+  try{
+    setSyncDot('syncing');
+    const docId = type + '_' + String(row.id);
+    await window._setDoc(window._doc('tax_income', docId), { ...row, type });
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('error');
+    showToast('บันทึกไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function deleteTaxRow_db(type, id){
+  // อัปเดต cache
+  if(_taxCache[type] !== null){
+    _taxCache[type] = _taxCache[type].filter(r=>r.id!==id);
+  }
+  try{
+    setSyncDot('syncing');
+    const docId = type + '_' + String(id);
+    await window._deleteDoc(window._doc('tax_income', docId));
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('error');
+    showToast('ลบไม่สำเร็จ: ' + e.message);
+  }
+}
+
+async function addIncomeRow(type){
   const year = parseInt(document.getElementById('tax-year').value);
-  const rows = loadTaxRows(type);
-  rows.push({ id: Date.now(), label:'', amount:0, year });
-  saveTaxRows(type, rows);
+  const newRow = { id: Date.now(), label:'', amountH1:0, amountH2:0, year };
+  // เพิ่มใน cache ก่อน
+  if(_taxCache[type] === null) await loadTaxRows(type);
+  _taxCache[type].push({ ...newRow, type });
+  await saveTaxRow(type, newRow);
   renderIncomeRows(type, year);
   calcTaxSummary();
 }
 
-function deleteIncomeRow(type, id){
+async function deleteIncomeRow(type, id){
   const year = parseInt(document.getElementById('tax-year').value);
-  const rows = loadTaxRows(type).filter(r=>r.id!==id);
-  saveTaxRows(type, rows);
+  await deleteTaxRow_db(type, id);
   renderIncomeRows(type, year);
   calcTaxSummary();
 }
 
-function updateIncomeRow(type, id, field, val){
-  const rows = loadTaxRows(type).map(r=> r.id===id ? {...r, [field]: field==='amount'?parseFloat(val)||0:val} : r);
-  saveTaxRows(type, rows);
+async function updateIncomeRow(type, id, field, val){
+  const numFields = ['amountH1','amountH2'];
+  if(_taxCache[type] === null) await loadTaxRows(type);
+  const rows = _taxCache[type].map(r=> r.id===id ? {...r, [field]: numFields.includes(field)?parseFloat(val)||0:val} : r);
+  _taxCache[type] = rows;
+  // บันทึก Firestore เฉพาะ row ที่เปลี่ยน
+  const changed = rows.find(r=>r.id===id);
+  if(changed) await saveTaxRow(type, changed);
   calcTaxSummary();
-  // อัปเดต total
+  // อัปเดต total (H1+H2)
   const year = parseInt(document.getElementById('tax-year').value);
-  const total = rows.filter(r=>r.year===year).reduce((s,r)=>s+r.amount,0);
+  const total = rows.filter(r=>r.year===year).reduce((s,r)=>s+(r.amountH1||0)+(r.amountH2||0),0);
   document.getElementById(type+'-total').textContent = '฿'+fmt(total,2);
 }
 
-function renderIncomeRows(type, year){
-  const rows = loadTaxRows(type).filter(r=>r.year===year);
+async function renderIncomeRows(type, year){
+  const rows = (await loadTaxRows(type)).filter(r=>r.year===year);
   const wrap = document.getElementById(type+'-rows');
   if(!wrap) return;
   wrap.innerHTML = rows.map(r=>`
     <div class="income-row">
-      <input type="text" value="${escHtml(r.label)}" placeholder="รายละเอียด เช่น โบนัส ม.ค."
+      <input type="text" value="${escHtml(r.label)}" placeholder="รายละเอียด"
         oninput="updateIncomeRow('${type}',${r.id},'label',this.value)">
-      <input type="number" value="${r.amount||''}" placeholder="จำนวน (THB)" step="0.01" min="0"
-        oninput="updateIncomeRow('${type}',${r.id},'amount',this.value)">
+      <input type="number" value="${r.amountH1||''}" placeholder="0" step="0.01" min="0"
+        class="income-h1-input"
+        oninput="updateIncomeRow('${type}',${r.id},'amountH1',this.value)">
+      <input type="number" value="${r.amountH2||''}" placeholder="0" step="0.01" min="0"
+        class="income-h2-input"
+        oninput="updateIncomeRow('${type}',${r.id},'amountH2',this.value)">
       <button class="del-row" onclick="deleteIncomeRow('${type}',${r.id})">ลบ</button>
     </div>`).join('');
-  const total = rows.reduce((s,r)=>s+r.amount,0);
+  const total = rows.reduce((s,r)=>s+(r.amountH1||0)+(r.amountH2||0),0);
   document.getElementById(type+'-total').textContent = '฿'+fmt(total,2);
 }
 
@@ -1744,7 +1840,7 @@ async function renderTikTokMonths(year){
   wrap.innerHTML = `<table class="tiktok-month-table"><tbody>${rows.join('')}</tbody></table>`;
 }
 
-function calcTaxSummary(){
+async function calcTaxSummary(){
   const year   = parseInt(document.getElementById('tax-year').value);
   const ceYear = year - 543;
   const hist   = _histCache || [];
@@ -1753,11 +1849,19 @@ function calcTaxSummary(){
   const tiktokFull = hist.filter(r=>r.date&&r.date.startsWith(String(ceYear))).reduce((s,r)=>s+r.thb,0);
   const tiktokHalf = hist.filter(r=>r.date&&r.date.startsWith(String(ceYear))&&parseInt(r.date.slice(5,7))<=6).reduce((s,r)=>s+r.thb,0);
 
-  const donateFull = loadTaxRows('donate').filter(r=>r.year===year).reduce((s,r)=>s+r.amount,0);
-  const otherFull  = loadTaxRows('other').filter(r=>r.year===year).reduce((s,r)=>s+r.amount,0);
+  const donateRows = (await loadTaxRows('donate')).filter(r=>r.year===year);
+  const otherRows  = (await loadTaxRows('other')).filter(r=>r.year===year);
+
+  const donateH1 = donateRows.reduce((s,r)=>s+(r.amountH1||0),0);
+  const donateH2 = donateRows.reduce((s,r)=>s+(r.amountH2||0),0);
+  const otherH1  = otherRows.reduce((s,r)=>s+(r.amountH1||0),0);
+  const otherH2  = otherRows.reduce((s,r)=>s+(r.amountH2||0),0);
+
+  const donateFull = donateH1 + donateH2;
+  const otherFull  = otherH1 + otherH2;
 
   const grossFull = tiktokFull + donateFull + otherFull;
-  const grossHalf = tiktokHalf + (donateFull/2) + (otherFull/2);
+  const grossHalf = tiktokHalf + donateH1 + otherH1;
 
   // ─ คำนวณสุทธิ+ภาษี ─
   const expFull = Math.min(grossFull*0.60,300000);
@@ -1845,10 +1949,12 @@ function calcTaxSummary(){
 
 async function renderTaxPage(){
   const year = parseInt(document.getElementById('tax-year').value);
+  // reset cache ทุกครั้งที่เปลี่ยนปี เพื่อโหลดข้อมูลใหม่
+  _taxCache = { donate: null, other: null };
   await renderTikTokMonths(year);
-  renderIncomeRows('donate', year);
-  renderIncomeRows('other', year);
-  calcTaxSummary();
+  await renderIncomeRows('donate', year);
+  await renderIncomeRows('other', year);
+  await calcTaxSummary();
 }
 
 // init year dropdown (ปีปัจจุบัน พ.ศ. และย้อนหลัง 3 ปี)
