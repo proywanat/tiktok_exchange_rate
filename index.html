@@ -1136,15 +1136,38 @@ function setSyncDot(state){ // 'syncing' | 'ok' | 'error' | ''
 }
 
 /* ─── Storage helpers (Firestore) ─── */
-let _histCache = null; // local cache เพื่อความเร็ว
+let _histCache = null; // in-memory cache
+const LS_HIST  = 'fx_hist_cache_v1'; // localStorage key
+
+/* ── localStorage helpers ── */
+function _lsSaveHist(data){
+  try{ localStorage.setItem(LS_HIST, JSON.stringify(data)); }catch(_){}
+}
+function _lsLoadHist(){
+  try{
+    const raw = localStorage.getItem(LS_HIST);
+    return raw ? JSON.parse(raw) : null;
+  }catch(_){ return null; }
+}
 
 async function loadHistory(){
+  // 1. in-memory hit → 0 reads
   if(_histCache !== null) return _histCache;
+
+  // 2. localStorage hit → 0 Firestore reads
+  const local = _lsLoadHist();
+  if(local !== null){
+    _histCache = local;
+    return _histCache;
+  }
+
+  // 3. Firestore — เฟ้นเฉพาะครั้งแรก หรือหลัง clearAll
   try{
     setSyncDot('syncing');
     const q    = window._query(window._col(COLLECTION), window._orderBy('date','desc'));
     const snap = await window._getDocs(q);
     _histCache = snap.docs.map(d => d.data());
+    _lsSaveHist(_histCache);
     setSyncDot('ok');
     return _histCache;
   }catch(e){
@@ -1161,6 +1184,7 @@ async function saveRecord(rec){
     if(_histCache !== null){
       const idx = _histCache.findIndex(r=>r.id===rec.id);
       if(idx>=0) _histCache[idx]=rec; else _histCache.push(rec);
+      _lsSaveHist(_histCache); // sync localStorage
     }
     setSyncDot('ok');
   }catch(e){
@@ -1174,7 +1198,10 @@ async function deleteRecord_db(id){
   try{
     setSyncDot('syncing');
     await window._deleteDoc(window._doc(COLLECTION, String(id)));
-    if(_histCache !== null) _histCache = _histCache.filter(r=>r.id!==id);
+    if(_histCache !== null){
+      _histCache = _histCache.filter(r=>r.id!==id);
+      _lsSaveHist(_histCache); // sync localStorage
+    }
     setSyncDot('ok');
   }catch(e){
     setSyncDot('error');
@@ -1191,6 +1218,7 @@ async function clearAllRecords_db(){
     snap.docs.forEach(d => batch.delete(d.ref));
     await batch.commit();
     _histCache = [];
+    _lsSaveHist([]); // ล้าง localStorage ด้วย
     setSyncDot('ok');
   }catch(e){
     setSyncDot('error');
@@ -1385,8 +1413,8 @@ async function doCalculate(){
 
 /* ─── Refresh all (async) ─── */
 async function refreshAll(){
-  _histCache = null; // invalidate cache → โหลดใหม่จาก Firestore
-  const hist = await loadHistory();
+  // ไม่ล้าง cache — ใช้ in-memory ที่อัปเดตแล้วในทุก write/delete โดยตรง
+  const hist = _histCache || await loadHistory();
   updateBadge(hist);
   renderHistory(hist);
   renderSummary(hist);
@@ -2024,10 +2052,15 @@ async function calcTaxSummary(){
   document.getElementById('deadline-90').textContent = `ภายใน 31 มี.ค. ${year+1}`;
 }
 
+let _lastTaxYear = null; // ติดตามปีล่าสุดที่โหลด
+
 async function renderTaxPage(){
   const year = parseInt(document.getElementById('tax-year').value);
-  // reset cache ทุกครั้งที่เปลี่ยนปี เพื่อโหลดข้อมูลใหม่
-  _taxCache = { donate: null, other: null };
+  // reset _taxCache เฉพาะเมื่อเปลี่ยนปี — ไม่รีเซ็ตทุกครั้งที่สลับแท็บ
+  if(_lastTaxYear !== year){
+    _taxCache = { donate: null, other: null };
+    _lastTaxYear = year;
+  }
   await renderTikTokMonths(year);
   await renderIncomeRows('donate', year);
   await renderIncomeRows('other', year);
